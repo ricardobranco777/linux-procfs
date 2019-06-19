@@ -15,7 +15,6 @@ import re
 import sys
 from argparse import ArgumentParser
 from collections import namedtuple
-from glob import glob
 
 VERSION = "0.3"
 
@@ -44,7 +43,7 @@ IGNORE = ('/dev',
           '/[aio]')
 
 # Regular expression to find systemd service unit in /proc/<pid>/cgroup
-SYSTEMD_REGEX = r"[0-9]+:name=systemd:/system.slice/(?:.*/)?(.*).service$"
+SYSTEMD_REGEX = r"\d+:name=systemd:/system\.slice/(?:.*/)?(.*)\.service$"
 
 
 def get_stat_fields():
@@ -126,13 +125,13 @@ def print_info(pid, deleted):
     # cmdline is empty if zombie
     if not cmdline:
         cmdline = stat.comm
-    uid = parse_status_id(status.Uid)
+    uid = parse_status_id(status.Uid).real
     try:
-        username = pwd.getpwuid(uid.real).pw_name
+        username = pwd.getpwuid(uid).pw_name
     except KeyError:
-        username = "-"
+        username = uid
     try:
-        service = re.findall(SYSTEMD_REGEX, cgroup, re.M)[0]
+        service = re.findall(SYSTEMD_REGEX, cgroup, re.MULTILINE)[0]
     except IndexError:
         if args.short > 1:
             return
@@ -141,10 +140,10 @@ def print_info(pid, deleted):
         print(service)
     else:
         print("%s\t%s\t%s\t%s\t%40s\t%s" % (
-            pid, stat.ppid, uid.real, username, service, cmdline))
+            pid, stat.ppid, uid, username, service, cmdline))
     if not args.short:
         for path in sorted(deleted):
-            print("\t%s" % path[:-len(" (deleted)")])
+            print("\t%s" % path)
 
 
 def main():
@@ -170,7 +169,7 @@ def main():
     if args.short < 3:
         print("%s\t%s\t%s\t%s\t%40s\t%s" % (
             "PID", "PPID", "UID", "User", "Service", "Command"))
-    for pid in map(os.path.basename, glob("/proc/[0-9]*")):
+    for pid in [_ for _ in os.listdir("/proc") if _.isdigit()]:
         try:
             os.chdir("/proc/%s" % pid)
             map_files = ["map_files/" + f for f in os.listdir("map_files/")]
@@ -185,7 +184,7 @@ def main():
             if not link or link == "/ (deleted)":
                 continue
             if link.endswith(' (deleted)') and not link.startswith(IGNORE):
-                deleted.add(link)
+                deleted.add(link[:-len(' (deleted)')])
         if deleted:
             print_info(pid, deleted)
 
