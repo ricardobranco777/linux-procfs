@@ -12,5 +12,4 @@ install:
   - pip install -r requirements-test.txt
 
 script:
-  - pylint restartable.py
-  - flake8
+  - make test
