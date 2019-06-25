@@ -7,8 +7,6 @@
 list restartable programs or services using deleted libraries
 """
 
-from __future__ import print_function
-
 import os
 import pwd
 import re
@@ -102,22 +100,19 @@ def main():
         print("%s\t%s\t%s\t%-30s\t%40s\t%s" % (
             "PID", "PPID", "UID", "User", "Service", "Command"))
     for pid in [_ for _ in os.listdir("/proc") if _.isdigit()]:
-        try:
-            proc = ProcPid(pid)
-        except OSError:
-            continue
-        deleted = set()
-        for path in [proc.exe] + proc.map_files:
-            try:
-                link = os.readlink(path)
-            except OSError:
-                continue
-            if not link or link == "/ (deleted)":
-                continue
-            if link.endswith(' (deleted)') and not link.startswith(IGNORE):
-                deleted.add(link[:-len(' (deleted)')])
-        if deleted:
-            print_info(proc, deleted)
+        with ProcPid(pid) as proc:
+            deleted = set()
+            for path in [proc.exe] + proc.map_files:
+                try:
+                    link = os.readlink(path, dir_fd=proc.dir_fd)
+                except OSError:
+                    continue
+                if not link or link == "/ (deleted)":
+                    continue
+                if link.endswith(' (deleted)') and not link.startswith(IGNORE):
+                    deleted.add(link[:-len(' (deleted)')])
+            if deleted:
+                print_info(proc, deleted)
 
 
 if __name__ == "__main__":

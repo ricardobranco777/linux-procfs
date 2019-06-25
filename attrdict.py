@@ -9,7 +9,7 @@ class AttrDict(dict):
     """
     def __init__(self, *args, **kwargs):
         self.update(*args, **kwargs)
-        super(AttrDict, self).__init__()
+        super().__init__()
 
     def __getattr__(self, attr):
         return self.__getitem__(attr)
