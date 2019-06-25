@@ -1,2 +1,2 @@
 [MESSAGES CONTROL]
-disable=invalid-name,global-statement,redefined-builtin
+disable=invalid-name,global-statement

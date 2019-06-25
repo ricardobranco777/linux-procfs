@@ -4,10 +4,8 @@ Module for managing /proc/<pid/*
 
 import os
 import re
-try:
-    from itertools import zip_longest
-except ImportError:
-    from itertools import izip_longest as zip_longest
+import stat
+from itertools import zip_longest
 
 from attrdict import AttrDict
 
@@ -38,14 +36,32 @@ class ProcPid(AttrDict):
         if not pid.isdigit():
             raise ValueError("Invalid pid %s" % pid)
         self['pid'] = pid
-        self._proc = proc
-        super(ProcPid, self).__init__()
+        self.dir_fd = os.open(os.path.join(proc, pid), os.O_RDONLY)
+        super().__init__()
+
+    def __enter__(self):
+        return self
+
+    def __del__(self):
+        if self.dir_fd is None:
+            return
+        try:
+            os.close(self.dir_fd)
+        except OSError:
+            pass
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        os.close(self.dir_fd)
+        self.dir_fd = None
+
+    def __opener(self, path, flags):
+        return os.open(path, flags, dir_fd=self.dir_fd)
 
     def _cmdline(self):
         """
         Returns the content of /proc/<pid>/cmdline as a list
         """
-        with open(os.path.join(self._proc, self.pid, "cmdline")) as file:
+        with open("cmdline", opener=self.__opener) as file:
             data = file.read()
         if data[-1] == '\0':
             return data[:-1].split('\0')
@@ -55,7 +71,7 @@ class ProcPid(AttrDict):
         """
         Returns the content of /proc/<pid>/environ as a dictionary
         """
-        with open(os.path.join(self._proc, self.pid, "environ")) as file:
+        with open("environ", opener=self.__opener) as file:
             data = file.read()
         try:
             return {
@@ -68,7 +84,7 @@ class ProcPid(AttrDict):
         """
         Parses /proc/<pid>/io and returns an AttrDict
         """
-        with open(os.path.join(self._proc, self.pid, "io")) as file:
+        with open("environ", opener=self.__opener) as file:
             lines = file.read().splitlines()
         return AttrDict([_.split(': ') for _ in lines])
 
@@ -76,7 +92,7 @@ class ProcPid(AttrDict):
         """
         Parses /proc/<pid>/maps and returns a list of AttrDict's
         """
-        with open(os.path.join(self._proc, self.pid, "maps")) as file:
+        with open("maps", opener=self.__opener) as file:
             lines = file.read().splitlines()
         return [
             AttrDict(zip_longest(_maps_fields, line.split()))
@@ -86,7 +102,7 @@ class ProcPid(AttrDict):
         """
         Parses /proc/<pid>/stat and returns an AttrDict
         """
-        with open(os.path.join(self._proc, self.pid, "stat")) as file:
+        with open("stat", opener=self.__opener) as file:
             data = re.findall(r"\(.*\)|\S+", file.read()[:-1])
         return AttrDict(zip(_stat_fields.split(), data))
 
@@ -94,7 +110,7 @@ class ProcPid(AttrDict):
         """
         Parses /proc/<pid>/statm and returns an AttrDict
         """
-        with open(os.path.join(self._proc, self.pid, "statm")) as file:
+        with open("statm", opener=self.__opener) as file:
             data = map(int, file.read().split())
         return AttrDict(zip(_statm_fields, data))
 
@@ -102,7 +118,7 @@ class ProcPid(AttrDict):
         """
         Parses /proc/<pid>/status and returns an AttrDict
         """
-        with open(os.path.join(self._proc, self.pid, "status")) as file:
+        with open("status", opener=self.__opener) as file:
             lines = file.read().splitlines()
         status = AttrDict([_.split(':\t') for _ in lines])
         status['Uid'] = AttrDict(
@@ -111,27 +127,27 @@ class ProcPid(AttrDict):
             zip(_status_XID_fields, map(int, status.Gid.split())))
         return status
 
-    def __getitem__(self, item):
+    def __getitem__(self, path):
         """
         Creates dynamic attributes for elements in /proc/<pid>
         """
         try:
-            return dict.__getitem__(self, item)
+            return dict.__getitem__(self, path)
         except KeyError:
             pass
-        if item in ('cmdline', 'environ', 'io', 'maps',
+        if path in ('cmdline', 'environ', 'io', 'maps',
                     'stat', 'statm', 'status'):
-            func = getattr(self, "_" + item)
-            self.__setitem__(item, func())
+            func = getattr(self, "_" + path)
+            self.__setitem__(path, func())
         else:
-            path = os.path.join(self._proc, self.pid, item)
-            if os.path.islink(path):
-                self.__setitem__(item, path)
-            elif os.path.isfile(path):
-                with open(path) as file:
-                    self.__setitem__(item, file.read())
-            elif os.path.isdir(path):
+            mode = os.lstat(path, dir_fd=self.dir_fd).st_mode
+            if stat.S_ISLNK(mode):
+                self.__setitem__(path, path)
+            elif stat.S_ISREG(mode):
+                with open(path, opener=self.__opener) as file:
+                    self.__setitem__(path, file.read())
+            elif stat.S_ISDIR(mode):
                 return [
-                    os.path.join(self._proc, path, _)
-                    for _ in os.listdir(path)]
-        return dict.__getitem__(self, item)
+                    os.path.join(path, _)
+                    for _ in list(os.fwalk(path, dir_fd=self.dir_fd))[0][2]]
+        return dict.__getitem__(self, path)
