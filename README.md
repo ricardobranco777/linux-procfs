@@ -1,5 +1,5 @@
 # restartable
-List possibly restartable processes or services
+List running processes using files deleted by recent upgrades
 
 [![Build Status](https://travis-ci.org/ricardobranco777/restartable.svg?branch=master)](https://travis-ci.org/ricardobranco777/restartable)
 
