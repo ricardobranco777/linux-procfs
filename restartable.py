@@ -39,7 +39,8 @@ IGNORE = ('/dev',
           '/SYSV',
           '/tmp',
           '/var',
-          '/[aio]')
+          '/[aio]',
+          '[')
 
 # Regular expression to find systemd service unit in /proc/<pid>/cgroup
 SYSTEMD_REGEX = r"\d+:name=systemd:/system\.slice/(?:.*/)?(.*)\.service$"
@@ -102,15 +103,11 @@ def main():
     for pid in [_ for _ in os.listdir("/proc") if _.isdigit()]:
         with ProcPid(pid) as proc:
             deleted = set()
-            for path in [proc.exe] + proc.map_files:
-                try:
-                    link = os.readlink(path, dir_fd=proc.dir_fd)
-                except OSError:
+            for path in {_['pathname'] for _ in proc.maps if _['pathname']}:
+                if path == "/ (deleted)":
                     continue
-                if not link or link == "/ (deleted)":
-                    continue
-                if link.endswith(' (deleted)') and not link.startswith(IGNORE):
-                    deleted.add(link[:-len(' (deleted)')])
+                if path.endswith(' (deleted)') and not path.startswith(IGNORE):
+                    deleted.add(path[:-len(' (deleted)')])
             if deleted:
                 print_info(proc, deleted)
 

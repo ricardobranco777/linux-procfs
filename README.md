@@ -9,8 +9,7 @@ OpenSUSE has a cool `zypper ps` command to check for programs and services using
 It's also available in other distros as `zypp-CheckAccessDeleted` from the `libzypp` package.
 Those commands parse `lsof` output and check `/proc/<pid>/cgroup` to extract the service names.
 
-Here's a Python version that checks `/proc/<pid>/exe` & `/proc/<pid>/map_files`,
-extracting information also from `/proc/<pid>/cmdline`, `/proc/<pid>/stat` & `/proc/<pid>/status`
+Here's a Python version that checks `/proc/<pid>/maps`, extracting information from other files in `/proc/<pid>`.
 
 No `lsof` dependency needed.
 
