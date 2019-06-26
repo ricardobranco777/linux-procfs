@@ -36,22 +36,24 @@ class ProcPid(AttrDict):
         if not isinstance(pid, (int, str)) and int(pid) <= 0:
             raise ValueError("Invalid pid %s" % pid)
         self.pid = str(pid)
-        self.dir_fd = os.open(os.path.join(proc, self.pid), os.O_RDONLY)
+        self.dir_fd = None
+        try:
+            self.dir_fd = os.open(os.path.join(proc, self.pid), os.O_RDONLY)
+        except OSError as err:
+            raise err
         super().__init__()
 
     def __enter__(self):
         return self
 
     def __del__(self):
-        if self.dir_fd is None:
-            return
-        try:
+        if self.dir_fd is not None:
             os.close(self.dir_fd)
-        except OSError:
-            pass
+        self.dir_fd = None
 
     def __exit__(self, exc_type, exc_value, traceback):
-        os.close(self.dir_fd)
+        if self.dir_fd is not None:
+            os.close(self.dir_fd)
         self.dir_fd = None
 
     def __opener(self, path, flags):

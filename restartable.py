@@ -24,6 +24,7 @@ List running processes using files deleted by recent upgrades
 Options:
     -h, --help      Get help
     -V, --version   Show version and exit
+    -P, --proc PROC_DIRECTORY
     -s, --short
          Create a short table not showing the deleted files. Given twice,
          show only processes which are associated with a system service.
@@ -84,6 +85,7 @@ def main():
     """
     argparser = ArgumentParser(usage=USAGE, add_help=False)
     argparser.add_argument('-h', '--help', action='store_true')
+    argparser.add_argument('-P', '--proc', default='/proc')
     argparser.add_argument('-s', '--short', action='count', default=0)
     argparser.add_argument('-V', '--version', action='store_true')
     global opts
@@ -102,7 +104,7 @@ def main():
         print("%s\t%s\t%s\t%-30s\t%40s\t%s" % (
             "PID", "PPID", "UID", "User", "Service", "Command"))
     for pid in [_ for _ in os.listdir("/proc") if _.isdigit()]:
-        with ProcPid(pid) as proc:
+        with ProcPid(pid, proc=opts.proc) as proc:
             deleted = set()
             for path in {_['pathname'] for _ in proc.maps if _['pathname']}:
                 if path == "/ (deleted)":
