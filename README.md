@@ -38,10 +38,12 @@ restartable.py [OPTIONS]
 List running processes using files deleted by recent upgrades
 
 Options:
+    -P, --proc PROC_DIRECTORY
+	Specify /proc directory
     -s, --short
-         Create a short table not showing the deleted files. Given twice,
-         show only processes which are associated with a system service.
-         Given three times, list the associated system service names only.
+	Create a short table not showing the deleted files. Given twice,
+	show only processes which are associated with a system service.
+	Given three times, list the associated system service names only.
 ```
 
 ## NOTES
