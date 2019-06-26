@@ -95,7 +95,7 @@ class ProcPid(AttrDict):
         with open("maps", opener=self.__opener) as file:
             lines = file.read().splitlines()
         return [
-            AttrDict(zip_longest(_maps_fields, line.split()))
+            AttrDict(zip_longest(_maps_fields, line.split(maxsplit=5)))
             for line in lines]
 
     def _stat(self):
