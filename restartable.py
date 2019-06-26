@@ -46,6 +46,7 @@ IGNORE = ('/dev',
 SYSTEMD_REGEX = r"\d+:name=systemd:/system\.slice/(?:.*/)?(.*)\.service$"
 
 opts = None
+services = set()
 
 
 def print_info(proc, deleted):
@@ -68,7 +69,7 @@ def print_info(proc, deleted):
     if not cmdline:
         cmdline = proc.stat.comm
     if opts.short > 2:
-        print(service)
+        services.add(service)
     else:
         print("%s\t%s\t%s\t%-30s\t%40s\t%s" % (
             proc.pid, proc.stat.ppid, uid, username, service, cmdline))
@@ -110,6 +111,8 @@ def main():
                     deleted.add(path[:-len(' (deleted)')])
             if deleted:
                 print_info(proc, deleted)
+    if opts.short > 2:
+        print("\n".join(sorted(services)))
 
 
 if __name__ == "__main__":
