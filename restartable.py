@@ -104,15 +104,18 @@ def main():
         print("%s\t%s\t%s\t%-30s\t%40s\t%s" % (
             "PID", "PPID", "UID", "User", "Service", "Command"))
     for pid in [_ for _ in os.listdir("/proc") if _.isdigit()]:
-        with ProcPid(pid, proc=opts.proc) as proc:
-            deleted = set()
-            for path in {_['pathname'] for _ in proc.maps if _['pathname']}:
-                if path == "/ (deleted)":
-                    continue
-                if path.endswith(' (deleted)') and not path.startswith(IGNORE):
-                    deleted.add(path[:-len(' (deleted)')])
-            if deleted:
-                print_info(proc, deleted)
+        try:
+            with ProcPid(pid, proc=opts.proc) as proc:
+                deleted = set()
+                for path in {_['pathname'] for _ in proc.maps if _['pathname']}:
+                    if path == "/ (deleted)":
+                        continue
+                    if path.endswith(' (deleted)') and not path.startswith(IGNORE):
+                        deleted.add(path[:-len(' (deleted)')])
+                if deleted:
+                    print_info(proc, deleted)
+        except OSError:
+            pass
     if opts.short > 2:
         print("\n".join(sorted(services)))
 
