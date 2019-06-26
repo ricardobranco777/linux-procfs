@@ -15,7 +15,7 @@ from argparse import ArgumentParser
 
 from procpid import ProcPid
 
-VERSION = "0.3"
+VERSION = "0.4"
 
 USAGE = """%s [OPTIONS]
 
