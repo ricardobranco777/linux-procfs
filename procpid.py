@@ -33,10 +33,10 @@ class ProcPid(AttrDict):
     def __init__(self, pid=None, proc="/proc"):
         if pid is None:
             pid = os.getpid()
-        if not pid.isdigit():
+        if not isinstance(pid, (int, str)) and int(pid) <= 0:
             raise ValueError("Invalid pid %s" % pid)
-        self['pid'] = pid
-        self.dir_fd = os.open(os.path.join(proc, pid), os.O_RDONLY)
+        self.pid = str(pid)
+        self.dir_fd = os.open(os.path.join(proc, self.pid), os.O_RDONLY)
         super().__init__()
 
     def __enter__(self):
