@@ -13,6 +13,25 @@ from itertools import zip_longest
 
 from attrdict import AttrDict
 
+_limits_fields = {
+    'Max cpu time': 'cpu',
+    'Max file size': 'fsize',
+    'Max data size': 'data',
+    'Max stack size': 'stack',
+    'Max core file size': 'core',
+    'Max resident set': 'rss',
+    'Max processes': 'nproc',
+    'Max open files': 'nofile',
+    'Max locked memory': 'memlock',
+    'Max address space': 'as',
+    'Max file locks': 'locks',
+    'Max pending signals': 'sigpending',
+    'Max msgqueue size': 'msgqueue',
+    'Max nice priority': 'nice',
+    'Max realtime priority': 'rtprio',
+    'Max realtime timeout': 'rttime',
+}
+
 _maps_fields = ('address', 'perms', 'offset', 'dev', 'inode', 'pathname')
 
 _stat_fields = (
@@ -94,6 +113,17 @@ class ProcPid(AttrDict):
             lines = file.read().splitlines()
         return AttrDict([_.split(': ') for _ in lines])
 
+    def _limits(self):
+        """
+        Parses /proc/<pid>/limits and returns an AttrDict
+        """
+        with open("limits", opener=self.__opener) as file:
+            data = re.findall(
+                r'^(.*?)\s{2,}(\S+)\s{2,}(\S+)', file.read(), re.M)[1:]
+        return AttrDict(
+            {_limits_fields[k]: AttrDict(zip(('soft', 'hard'), v))
+             for (k, *v) in data})
+
     def _maps(self):
         """
         Parses /proc/<pid>/maps and returns a list of AttrDict's
@@ -141,8 +171,8 @@ class ProcPid(AttrDict):
             return dict.__getitem__(self, path)
         except KeyError:
             pass
-        if path in ('cmdline', 'environ', 'io', 'maps',
-                    'stat', 'statm', 'status'):
+        if path in ('cmdline', 'environ', 'io', 'limits',
+                    'maps', 'stat', 'statm', 'status'):
             func = getattr(self, "_" + path)
             self.__setitem__(path, func())
         else:
