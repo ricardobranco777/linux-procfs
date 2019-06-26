@@ -106,12 +106,12 @@ def main():
     for pid in [_ for _ in os.listdir("/proc") if _.isdigit()]:
         try:
             with ProcPid(pid, proc=opts.proc) as proc:
-                deleted = set()
-                for path in {_['pathname'] for _ in proc.maps if _['pathname']}:
-                    if path == "/ (deleted)":
-                        continue
-                    if path.endswith(' (deleted)') and not path.startswith(IGNORE):
-                        deleted.add(path[:-len(' (deleted)')])
+                deleted = {
+                    _['pathname'][:-len(' (deleted)')] for _ in proc.maps
+                    if (_['pathname'] is not None and
+                        _['pathname'] != "/ (deleted)" and
+                        _['pathname'].endswith(' (deleted)') and
+                        not _['pathname'].startswith(IGNORE))}
                 if deleted:
                     print_info(proc, deleted)
         except OSError:
