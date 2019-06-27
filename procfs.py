@@ -75,6 +75,10 @@ class Proc(AttrDict):
                     "meminfo", "swaps", "vmstat"):
             func = getattr(self, "_" + path)
             self.__setitem__(path, func())
+        elif path == "self":
+            return ProcPid(proc=self.proc)
+        elif path.isdigit():
+            return ProcPid(path, proc=self.proc)
         else:
             path = os.path.join(self.proc, path)
             if os.path.islink(path):
