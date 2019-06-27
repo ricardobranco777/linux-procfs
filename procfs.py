@@ -67,6 +67,16 @@ class Proc(AttrDict):
             lines = file.read().splitlines()
         return AttrDict([map(str.strip, line.split(':')) for line in lines])
 
+    def _mounts(self):
+        """
+        Parses /proc/mounts and returns a list of AttrDict's
+        """
+        with open(os.path.join(self.proc, "mounts")) as file:
+            lines = file.read().splitlines()
+        return [
+            AttrDict(zip(_mounts_fields, line.split()))
+            for line in lines]
+
     def _swaps(self):
         """
         Parses /proc/swaps and returns a list of AttrDict's
@@ -93,7 +103,7 @@ class Proc(AttrDict):
         except KeyError:
             pass
         if path in ("config", "cgroups", "cmdline", "cpuinfo",
-                    "meminfo", "swaps", "vmstat"):
+                    "meminfo", "mounts", "swaps", "vmstat"):
             func = getattr(self, "_" + path)
             self.__setitem__(path, func())
         elif path == "self":
@@ -130,6 +140,9 @@ _limits_fields = {
 }
 
 _maps_fields = ('address', 'perms', 'offset', 'dev', 'inode', 'pathname')
+
+_mounts_fields = ('fs_spec', 'fs_file', 'fs_vfstype',
+                  'fs_mntops', 'fs_freq', 'fs_passno')
 
 _stat_fields = (
     'pid comm state ppid pgrp session tty_nr tpgid flags '
@@ -231,6 +244,16 @@ class ProcPid(AttrDict):
             AttrDict(zip_longest(_maps_fields, line.split(maxsplit=5)))
             for line in lines]
 
+    def _mounts(self):
+        """
+        Parses /proc/<pid>/mounts and returns a list of AttrDict's
+        """
+        with open("mounts", opener=self.__opener) as file:
+            lines = file.read().splitlines()
+        return [
+            AttrDict(zip(_mounts_fields, line.split()))
+            for line in lines]
+
     def _stat(self):
         """
         Parses /proc/<pid>/stat and returns an AttrDict
@@ -269,7 +292,7 @@ class ProcPid(AttrDict):
         except KeyError:
             pass
         if path in ('cmdline', 'environ', 'io', 'limits',
-                    'maps', 'stat', 'statm', 'status'):
+                    'maps', 'mounts', 'stat', 'statm', 'status'):
             func = getattr(self, "_" + path)
             self.__setitem__(path, func())
         else:
