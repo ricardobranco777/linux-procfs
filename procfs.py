@@ -3,15 +3,87 @@
 # MIT License
 #
 """
-Module for managing /proc/<pid/*
+Module with classes to parse /proc entries
 """
 
+import gzip
 import os
 import re
 import stat
 from itertools import zip_longest
 
 from attrdict import AttrDict
+
+
+class Proc(AttrDict):
+    """
+    Class to parse /proc entries
+    """
+    def __init__(self, proc="/proc"):
+        self.proc = proc
+        super().__init__()
+
+    def _config(self):
+        with gzip.open(os.path.join(self.proc, "config.gz")) as file:
+            lines = file.read().decode('utf-8').splitlines()
+        return AttrDict(
+            line.split('=') for line in lines if line.startswith("CONFIG_"))
+
+    def _cgroups(self):
+        with open(os.path.join(self.proc, "cgroups")) as file:
+            data = file.read()
+        keys, *values = data.splitlines()
+        return [AttrDict(zip(keys[1:].split(), _.split())) for _ in values]
+
+    def _cmdline(self):
+        with open(os.path.join(self.proc, "cmdline")) as file:
+            return file.read().strip()
+
+    def _cpuinfo(self):
+        with open(os.path.join(self.proc, "cpuinfo")) as file:
+            cpus = [_ for _ in file.read()[:-1].split('\n\n')]
+        return [
+            AttrDict([map(str.strip, line.split(':'))
+                      for line in cpu.splitlines()])
+            for cpu in cpus]
+
+    def _meminfo(self):
+        with open(os.path.join(self.proc, "meminfo")) as file:
+            lines = file.read().splitlines()
+        return AttrDict([map(str.strip, line.split(':')) for line in lines])
+
+    def _swaps(self):
+        with open(os.path.join(self.proc, "swaps")) as file:
+            data = file.read()
+        keys, *values = data.splitlines()
+        return [AttrDict(zip(keys.split(), _.split())) for _ in values]
+
+    def _vmstat(self):
+        with open(os.path.join(self.proc, "vmstat")) as file:
+            data = file.read()
+        return AttrDict(line.split() for line in data.splitlines())
+
+    def __getitem__(self, path):
+        """
+        Creates dynamic attributes for elements in /proc/
+        """
+        try:
+            return dict.__getitem__(self, path)
+        except KeyError:
+            pass
+        if path in ("config", "cgroups", "cmdline", "cpuinfo",
+                    "meminfo", "swaps", "vmstat"):
+            func = getattr(self, "_" + path)
+            self.__setitem__(path, func())
+        else:
+            path = os.path.join(self.proc, path)
+            if os.path.islink(path):
+                self.__setitem__(path, path)
+            elif os.path.isfile(path):
+                with open(path) as file:
+                    self.__setitem__(path, file.read())
+        return dict.__getitem__(self, path)
+
 
 _limits_fields = {
     'Max cpu time': 'cpu',
@@ -88,7 +160,7 @@ class ProcPid(AttrDict):
         """
         with open("cmdline", opener=self.__opener) as file:
             data = file.read()
-        if data[-1] == '\0':
+        if data.endswith('\0'):
             return data[:-1].split('\0')
         return [data]
 
@@ -109,7 +181,7 @@ class ProcPid(AttrDict):
         """
         Parses /proc/<pid>/io and returns an AttrDict
         """
-        with open("environ", opener=self.__opener) as file:
+        with open("io", opener=self.__opener) as file:
             lines = file.read().splitlines()
         return AttrDict([_.split(': ') for _ in lines])
 
