@@ -13,7 +13,7 @@ import re
 import sys
 from argparse import ArgumentParser
 
-from procpid import ProcPid
+from procfs import ProcPid
 
 VERSION = "0.4.2"
 
