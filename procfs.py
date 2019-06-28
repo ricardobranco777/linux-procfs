@@ -24,22 +24,34 @@ class Proc(AttrDict):
         super().__init__()
 
     def _config(self):
+        """
+        Parses /proc/config.gz and returns an AttrDict
+        """
         with gzip.open(os.path.join(self.proc, "config.gz")) as file:
             lines = file.read().decode('utf-8').splitlines()
         return AttrDict(
             line.split('=') for line in lines if line.startswith("CONFIG_"))
 
     def _cgroups(self):
+        """
+        Parses /proc/cgroup and returns a list of AttrDict's
+        """
         with open(os.path.join(self.proc, "cgroups")) as file:
             data = file.read()
         keys, *values = data.splitlines()
         return [AttrDict(zip(keys[1:].split(), _.split())) for _ in values]
 
     def _cmdline(self):
+        """
+        Parses /proc/cmdline and returns a list
+        """
         with open(os.path.join(self.proc, "cmdline")) as file:
             return file.read().strip()
 
     def _cpuinfo(self):
+        """
+        Parses /proc/cpuinfo and returns a list of AttrDict's
+        """
         with open(os.path.join(self.proc, "cpuinfo")) as file:
             cpus = [_ for _ in file.read()[:-1].split('\n\n')]
         return [
@@ -48,17 +60,26 @@ class Proc(AttrDict):
             for cpu in cpus]
 
     def _meminfo(self):
+        """
+        Parses /proc/meminfo and returns an AttrDict
+        """
         with open(os.path.join(self.proc, "meminfo")) as file:
             lines = file.read().splitlines()
         return AttrDict([map(str.strip, line.split(':')) for line in lines])
 
     def _swaps(self):
+        """
+        Parses /proc/swaps and returns a list of AttrDict's
+        """
         with open(os.path.join(self.proc, "swaps")) as file:
             data = file.read()
         keys, *values = data.splitlines()
         return [AttrDict(zip(keys.split(), _.split())) for _ in values]
 
     def _vmstat(self):
+        """
+        Parses /proc/vmstat and returns an AttrDict
+        """
         with open(os.path.join(self.proc, "vmstat")) as file:
             data = file.read()
         return AttrDict(line.split() for line in data.splitlines())
@@ -160,7 +181,7 @@ class ProcPid(AttrDict):
 
     def _cmdline(self):
         """
-        Returns the content of /proc/<pid>/cmdline as a list
+        Parses /proc/<pid>/cmdline and returns a list
         """
         with open("cmdline", opener=self.__opener) as file:
             data = file.read()
@@ -170,7 +191,7 @@ class ProcPid(AttrDict):
 
     def _environ(self):
         """
-        Returns the content of /proc/<pid>/environ as a dictionary
+        Parses /proc/<pid>/environ and returns a dictionary
         """
         with open("environ", opener=self.__opener) as file:
             data = file.read()
