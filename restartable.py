@@ -36,6 +36,7 @@ IGNORE = ('/dev',
           '/home',
           '/i915',
           '/memfd:',
+          '/proc',
           '/run',
           '/SYSV',
           '/tmp',
@@ -111,7 +112,8 @@ def main():
                     if (_['pathname'] is not None and
                         _['pathname'] != "/ (deleted)" and
                         _['pathname'].endswith(' (deleted)') and
-                        not _['pathname'].startswith(IGNORE))}
+                        not _['pathname'].startswith(IGNORE) and
+                        'x' in _['perms'])}
                 if deleted:
                     print_info(proc, deleted)
         except OSError:
