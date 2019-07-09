@@ -33,16 +33,9 @@ Options:
 
 # Ignore deleted files in these directories
 IGNORE = ('/dev',
-          '/home',
-          '/i915',
-          '/memfd:',
-          '/proc',
           '/run',
-          '/SYSV',
-          '/tmp',
-          '/var',
-          '/[aio]',
-          '[')
+          '/ ',
+          )
 
 # Regular expression to find systemd service unit in /proc/<pid>/cgroup
 SYSTEMD_REGEX = r"\d+:name=systemd:/system\.slice/(?:.*/)?(.*)\.service$"
@@ -107,13 +100,15 @@ def main():
     for pid in [_ for _ in os.listdir("/proc") if _.isdigit()]:
         try:
             with ProcPid(pid, proc=opts.proc) as proc:
+                # Get deleted executable mappings
                 deleted = {
-                    _['pathname'][:-len(' (deleted)')] for _ in proc.maps
-                    if (_['pathname'] is not None and
-                        _['pathname'] != "/ (deleted)" and
-                        _['pathname'].endswith(' (deleted)') and
-                        not _['pathname'].startswith(IGNORE) and
-                        'x' in _['perms'])}
+                    _['pathname'][:-len(" (deleted)")]
+                    for _ in proc.maps
+                    if (_['pathname'] and
+                        'x' in _['perms'] and
+                        _['pathname'].endswith(" (deleted)") and
+                        not _['pathname'].startswith(IGNORE))
+                }
                 if deleted:
                     print_info(proc, deleted)
         except OSError:
