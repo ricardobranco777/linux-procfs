@@ -37,13 +37,13 @@ IGNORE = (
     '/dev',
     '/run',
     '/ ',
-    )
+)
 
 # Regular expression to find systemd service unit in /proc/<pid>/cgroup
 SYSTEMD_REGEX = r"\d+:name=systemd:/system\.slice/(?:.*/)?(.*)\.service$"
 
 # Regular expression to match scripting languages
-SCRIPT_REGEX = r"((bash|perl|python|ruby)(\d?(\.\d)?)|sh)$"
+SCRIPT_REGEX = r"((perl|python|ruby)(\d?(\.\d)?)|(a|ba|c|da|fi|k|pdk|tc|z)?sh)$"
 
 opts = None
 services = set()
@@ -132,10 +132,10 @@ def main():
                 deleted = {
                     _['pathname'][:-len(" (deleted)")]
                     for _ in proc.maps
-                    if (_['pathname'] and
-                        'x' in _['perms'] and
-                        _['pathname'].endswith(" (deleted)") and
-                        not _['pathname'].startswith(IGNORE))
+                    if (_['pathname']
+                        and 'x' in _['perms']
+                        and _['pathname'].endswith(" (deleted)")
+                        and not _['pathname'].startswith(IGNORE))
                 }
                 if deleted:
                     print_info(proc, deleted)
