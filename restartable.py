@@ -78,21 +78,21 @@ def print_info(proc, deleted):
     """
     Print information
     """
-    uid = proc.status.Uid.real
-    try:
-        username = pwd.getpwuid(uid).pw_name
-    except KeyError:
-        username = uid
     try:
         service = re.findall(SYSTEMD_REGEX, proc.cgroup, re.MULTILINE)[0]
     except IndexError:
         if opts.short > 1:
             return
         service = "-"
-    cmdline = guess_command(proc)
     if opts.short > 2:
         services.add(service)
     else:
+        uid = proc.status.Uid.real
+        try:
+            username = pwd.getpwuid(uid).pw_name
+        except KeyError:
+            username = uid
+        cmdline = guess_command(proc)
         print("%s\t%s\t%s\t%-30s\t%40s\t%s" % (
             proc.pid, proc.stat.ppid, uid, username, service, cmdline))
     if not opts.short:
