@@ -63,7 +63,7 @@ def guess_command(proc):
             return proc.stat.comm
     else:
         cmdline = proc.stat.comm
-        if len(cmdline) == 15 or cmdline == "none":
+        if proc.cmdline[0] and (len(cmdline) == 15 or cmdline == "none"):
             cmdline = os.path.basename(proc.cmdline[0])
         if re.match(SCRIPT_REGEX, cmdline):
             # Skip options
