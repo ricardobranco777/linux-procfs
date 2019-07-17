@@ -29,19 +29,49 @@ Options:
          Create a short table not showing the deleted files. Given twice,
          show only processes which are associated with a system service.
          Given three times, list the associated system service names only.
+    -v, --verbose   Show the complete command line
 """ % os.path.basename(sys.argv[0])
 
 # Ignore deleted files in these directories
-IGNORE = ('/dev',
-          '/run',
-          '/ ',
-          )
+IGNORE = (
+    '/dev',
+    '/run',
+    '/ ',
+    )
 
 # Regular expression to find systemd service unit in /proc/<pid>/cgroup
 SYSTEMD_REGEX = r"\d+:name=systemd:/system\.slice/(?:.*/)?(.*)\.service$"
 
+# Regular expression to match scripting languages
+SCRIPT_REGEX = r"((bash|perl|python|ruby)(\d?(\.\d)?)|sh)$"
+
 opts = None
 services = set()
+
+
+def guess_command(proc):
+    """
+    Guess the command being run
+    /proc/comm & /proc/pid/stat truncate the command to 15 chars
+    If running a script, get the name of the script instead of the interpreter
+    Also, kernel usermode helpers use "none"
+    """
+    if opts.verbose:
+        # cmdline is empty if zombie
+        cmdline = " ".join(proc.cmdline)
+        if not cmdline:
+            return proc.stat.comm
+    else:
+        cmdline = proc.stat.comm
+        if len(cmdline) == 15 or cmdline == "none":
+            cmdline = os.path.basename(proc.cmdline[0])
+        if re.match(SCRIPT_REGEX, cmdline):
+            # Skip options
+            for arg in proc.cmdline[1:]:
+                if not arg.startswith('-'):
+                    cmdline = os.path.basename(arg)
+                    break
+    return cmdline
 
 
 def print_info(proc, deleted):
@@ -59,10 +89,7 @@ def print_info(proc, deleted):
         if opts.short > 1:
             return
         service = "-"
-    # cmdline is empty if zombie
-    cmdline = " ".join(proc.cmdline)
-    if not cmdline:
-        cmdline = proc.stat.comm
+    cmdline = guess_command(proc)
     if opts.short > 2:
         services.add(service)
     else:
@@ -81,6 +108,7 @@ def main():
     argparser.add_argument('-h', '--help', action='store_true')
     argparser.add_argument('-P', '--proc', default='/proc')
     argparser.add_argument('-s', '--short', action='count', default=0)
+    argparser.add_argument('-v', '--verbose', action='store_true')
     argparser.add_argument('-V', '--version', action='store_true')
     global opts
     opts = argparser.parse_args()
