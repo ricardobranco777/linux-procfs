@@ -15,7 +15,7 @@ from argparse import ArgumentParser
 
 from procfs import ProcPid
 
-VERSION = "0.5"
+VERSION = "0.5.1"
 
 USAGE = """%s [OPTIONS]
 
