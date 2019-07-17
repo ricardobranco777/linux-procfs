@@ -167,7 +167,7 @@ _stat_fields = (
     'sigignore sigcatch wchan nswap cnswap exit_signal processor '
     'rt_priority policy delayacct_blkio_ticks guest_time cguest_time '
     'start_data end_data start_brk arg_start arg_end env_start env_end '
-    'exit_code')
+    'exit_code').split()
 
 _statm_fields = ('size', 'resident', 'shared', 'text', 'lib', 'data', 'dt')
 
@@ -216,6 +216,15 @@ class ProcPid(AttrDict):
         if data.endswith('\0'):
             return data[:-1].split('\0')
         return [data]
+
+    def _comm(self):
+        """
+        Parses /proc/comm
+        """
+        with open("comm", opener=self.__opener) as file:
+            data = file.read()
+        # Strip trailing newline
+        return data[:-1]
 
     def _environ(self):
         """
@@ -275,7 +284,10 @@ class ProcPid(AttrDict):
         """
         with open("stat", opener=self.__opener) as file:
             data = re.findall(r"\(.*\)|\S+", file.read()[:-1])
-        return AttrDict(zip(_stat_fields.split(), data))
+        info = AttrDict(zip(_stat_fields, data))
+        # Remove parentheses
+        info.comm = info.comm[1:-1]
+        return info
 
     def _statm(self):
         """
