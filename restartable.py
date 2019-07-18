@@ -52,7 +52,7 @@ services = set()
 def guess_command(proc):
     """
     Guess the command being run
-    /proc/comm & /proc/pid/stat truncate the command to 15 chars
+    The command may be truncated to 15 chars in /proc/<pid>/{comm,stat,status}
     If running a script, get the name of the script instead of the interpreter
     Also, kernel usermode helpers use "none"
     """
@@ -60,9 +60,9 @@ def guess_command(proc):
         # cmdline is empty if zombie
         cmdline = " ".join(proc.cmdline)
         if not cmdline:
-            return proc.stat.comm
+            return proc.status.Name
     else:
-        cmdline = proc.stat.comm
+        cmdline = proc.status.Name
         if proc.cmdline[0] and (len(cmdline) == 15 or cmdline == "none"):
             cmdline = os.path.basename(proc.cmdline[0])
         if re.match(SCRIPT_REGEX, cmdline):
@@ -94,7 +94,7 @@ def print_info(proc, deleted):
             username = uid
         cmdline = guess_command(proc)
         print("%s\t%s\t%s\t%-30s\t%40s\t%s" % (
-            proc.pid, proc.stat.ppid, uid, username, service, cmdline))
+            proc.pid, proc.status.PPid, uid, username, service, cmdline))
     if not opts.short:
         for path in sorted(deleted):
             print("\t%s" % path)
