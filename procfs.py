@@ -23,6 +23,23 @@ class Proc(AttrDict):
         self.proc = proc
         super().__init__()
 
+    def pids(self):
+        """
+        Returns a list of all the processes in the system
+        """
+        return filter(str.isdigit, os.listdir(self.proc))
+
+    def tasks(self):
+        """
+        Returns a list of all the tasks (threads) in the system
+        """
+        #  We could use a list comprehension but a PID could disappear
+        for pid in self.pids():
+            try:
+                yield from os.listdir(os.path.join(self.proc, pid, "task"))
+            except FileNotFoundError:
+                pass
+
     def _config(self):
         """
         Parses /proc/config.gz and returns an AttrDict
@@ -132,6 +149,8 @@ class Proc(AttrDict):
             elif os.path.isfile(path):
                 with open(path) as file:
                     self.__setitem__(path, file.read())
+            elif os.path.isdir(path):
+                return os.listdir(path)
         return dict.__getitem__(self, path)
 
 
@@ -330,7 +349,8 @@ class ProcPid(AttrDict):
                 with open(path, opener=self.__opener) as file:
                     self.__setitem__(path, file.read())
             elif stat.S_ISDIR(mode):
-                return [
-                    os.path.join(path, _)
-                    for _ in list(os.fwalk(path, dir_fd=self.dir_fd))[0][2]]
+                dir_fd = os.open(path, os.O_RDONLY, dir_fd=self.dir_fd)
+                listing = os.listdir(dir_fd)
+                os.close(dir_fd)
+                return listing
         return dict.__getitem__(self, path)
