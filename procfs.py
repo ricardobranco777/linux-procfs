@@ -103,11 +103,9 @@ class Proc(AttrDict):
         """
         Parses /proc/mounts and returns a list of AttrDict's
         """
-        with open(os.path.join(self.proc, "mounts")) as file:
-            lines = file.read().splitlines()
-        return [
-            AttrDict(zip(_mounts_fields, line.split()))
-            for line in lines]
+        # /proc/mounts is a symlink to /proc/self/mounts
+        with ProcPid(proc=self.proc) as proc_self:
+            return proc_self.mounts
 
     def _swaps(self):
         """
