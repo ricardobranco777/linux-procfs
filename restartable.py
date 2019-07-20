@@ -13,7 +13,7 @@ import re
 import sys
 from argparse import ArgumentParser
 
-from procfs import ProcPid
+from procfs import Proc, ProcPid
 
 VERSION = "0.5.1"
 
@@ -125,7 +125,7 @@ def main():
     if opts.short < 3:
         print("%s\t%s\t%s\t%-30s\t%40s\t%s" % (
             "PID", "PPID", "UID", "User", "Service", "Command"))
-    for pid in [_ for _ in os.listdir("/proc") if _.isdigit()]:
+    for pid in Proc().pids():
         try:
             with ProcPid(pid, proc=opts.proc) as proc:
                 # Get deleted executable mappings
