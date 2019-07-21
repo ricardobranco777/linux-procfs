@@ -230,6 +230,8 @@ class ProcPid(AttrDict):
         """
         with open("cmdline", opener=self.__opener) as file:
             data = file.read()
+        # Escape newlines
+        data = data.replace("\n", "\\n")
         if data.endswith('\0'):
             return data[:-1].split('\0')
         return [data]
