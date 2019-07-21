@@ -281,9 +281,22 @@ class ProcPid(AttrDict):
         """
         with open("maps", opener=self.__opener) as file:
             lines = file.read().splitlines()
-        return [
+        maps = [
             AttrDict(zip_longest(_maps_fields, line.split(maxsplit=5)))
             for line in lines]
+        # From the proc(5) manpage:
+        #  pathname is shown unescaped except for newline characters,
+        #  which are replaced with an octal escape sequence. As a result,
+        #  it is not possible to determine whether the original pathname
+        #  contained a newline character or the literal \012 character sequence
+        # So let's readlink() the address in the map_files directory
+        for map_ in maps:
+            if map_.pathname and "\\012" in map_.pathname:
+                map_.pathname = os.readlink(
+                    "map_files/%s" % map_.address,
+                    dir_fd=self.dir_fd
+                ).replace("\n", "\\n")
+        return maps
 
     def _mounts(self):
         """
@@ -300,10 +313,12 @@ class ProcPid(AttrDict):
         Parses /proc/<pid>/stat and returns an AttrDict
         """
         with open("stat", opener=self.__opener) as file:
-            data = re.findall(r"\(.*\)|\S+", file.read()[:-1])
+            data = re.findall(r"\(.*\)|\S+", file.read()[:-1], re.M | re.S)
         info = AttrDict(zip(_stat_fields, data))
         # Remove parentheses
         info.comm = info.comm[1:-1]
+        # Escape newlines
+        info.comm = info.comm.replace("\n", "\\n")
         return info
 
     def _statm(self):
@@ -325,6 +340,7 @@ class ProcPid(AttrDict):
             zip(_status_XID_fields, map(int, status.Uid.split())))
         status['Gid'] = AttrDict(
             zip(_status_XID_fields, map(int, status.Gid.split())))
+        # status['Name'] = status['Name'].replace("\\n", "\n")
         return status
 
     def __getitem__(self, path):
@@ -335,7 +351,7 @@ class ProcPid(AttrDict):
             return dict.__getitem__(self, path)
         except KeyError:
             pass
-        if path in ('cmdline', 'environ', 'io', 'limits',
+        if path in ('cmdline', 'comm', 'environ', 'io', 'limits',
                     'maps', 'mounts', 'stat', 'statm', 'status'):
             func = getattr(self, "_" + path)
             self.__setitem__(path, func())
