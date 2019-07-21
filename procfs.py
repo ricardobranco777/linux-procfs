@@ -46,19 +46,20 @@ class Proc(AttrDict):
         If /proc/config.gz doesn't exist, try /boot or /lib/modules/
         """
         lines = None
-        if os.path.exists(os.path.join(self.proc, "config.gz")):
-            with gzip.open(os.path.join(self.proc, "config.gz")) as file:
-                lines = file.read().decode('utf-8').splitlines()
-        else:
-            paths = [
-                "boot/config-%s" % os.uname().release,
-                "/lib/modules/%s/build/.config" % os.uname().release
-            ]
-            for path in paths:
-                if os.path.exists(path):
+        paths = [
+            os.path.join(self.proc, "config.gz"),
+            "boot/config-%s" % os.uname().release,
+            "/lib/modules/%s/build/.config" % os.uname().release
+        ]
+        for path in paths:
+            if os.path.exists(path):
+                if path.endswith("gz"):
+                    with gzip.open(path) as file:
+                        lines = file.read().decode('utf-8').splitlines()
+                else:
                     with open(path) as file:
                         lines = file.read().splitlines()
-                        break
+                break
         if lines is None:
             return None
         return AttrDict(
