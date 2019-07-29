@@ -43,7 +43,9 @@ IGNORE = (
 SYSTEMD_REGEX = r"\d+:name=systemd:/system\.slice/(?:.*/)?(.*)\.service$"
 
 # Regular expression to match scripting languages
-SCRIPT_REGEX = r"((perl|python|ruby)(\d?(\.\d)?)|(a|ba|c|da|fi|k|pdk|tc|z)?sh)$"
+SCRIPT_REGEX = r"/((perl|python|ruby)(\d?(\.\d)?)|(a|ba|c|da|fi|k|pdk|tc|z)?sh)$"
+
+FORMAT_STRING = "%s\t%s\t%s\t%-20s\t%20s\t%s"
 
 opts = None
 services = set()
@@ -64,13 +66,17 @@ def guess_command(proc):
     else:
         cmdline = proc.status.Name
         if proc.cmdline[0] and (len(cmdline) == 15 or cmdline == "none"):
-            cmdline = os.path.basename(proc.cmdline[0])
-        if re.match(SCRIPT_REGEX, cmdline):
+            cmdline = proc.cmdline[0]
+        if re.search(SCRIPT_REGEX, cmdline):
             # Skip options
             for arg in proc.cmdline[1:]:
                 if not arg.startswith('-'):
-                    cmdline = os.path.basename(arg)
+                    cmdline = arg
                     break
+        if cmdline.startswith('/'):
+            cmdline = os.path.basename(cmdline)
+        else:
+            cmdline = cmdline.split()[-1]
     return cmdline
 
 
@@ -93,7 +99,7 @@ def print_info(proc, deleted):
         except KeyError:
             username = uid
         cmdline = guess_command(proc)
-        print("%s\t%s\t%s\t%-30s\t%40s\t%s" % (
+        print(FORMAT_STRING % (
             proc.pid, proc.status.PPid, uid, username, service, cmdline))
     if not opts.short:
         for path in sorted(deleted):
@@ -123,7 +129,7 @@ def main():
         print("WARN: Run this program as root", file=sys.stderr)
 
     if opts.short < 3:
-        print("%s\t%s\t%s\t%-30s\t%40s\t%s" % (
+        print(FORMAT_STRING % (
             "PID", "PPID", "UID", "User", "Service", "Command"))
     for pid in Proc().pids():
         try:
