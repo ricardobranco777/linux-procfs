@@ -13,9 +13,9 @@ import re
 import sys
 from argparse import ArgumentParser
 
-from procfs import Proc, ProcPid
+from restartable.procfs import Proc, ProcPid
+from restartable import __version__
 
-VERSION = "0.6"
 
 USAGE = """%s [OPTIONS]
 
@@ -122,7 +122,7 @@ def main():
         print(USAGE)
         sys.exit(0)
     elif opts.version:
-        print(VERSION)
+        print(__version__)
         sys.exit(0)
 
     if os.geteuid() != 0:

@@ -12,7 +12,7 @@ import re
 import stat
 from itertools import zip_longest
 
-from attrdict import AttrDict
+from restartable.attrdict import AttrDict
 
 
 class Proc(AttrDict):

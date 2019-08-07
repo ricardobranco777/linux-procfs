@@ -30,10 +30,16 @@ Excerpt from `zypper` manual:
 | Service | Service name, if command is associated with a system service
 | Files | The list of the deleted files
 
+## Installation
+
+```
+pip3 install --user restartable
+```
+
 ## Usage
 
 ```
-restartable.py [OPTIONS]
+sudo restartable [OPTIONS]
 
 List running processes using files deleted by recent upgrades
 
