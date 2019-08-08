@@ -33,7 +33,7 @@ Excerpt from `zypper` manual:
 ## Installation
 
 ```
-pip3 install --user restartable
+sudo pip3 install restartable
 ```
 
 ## Usage
