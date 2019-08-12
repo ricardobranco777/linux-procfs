@@ -128,6 +128,10 @@ def main():
     if os.geteuid() != 0:
         print("WARN: Run this program as root", file=sys.stderr)
 
+    if not os.path.isdir(opts.proc):
+        print("ERROR: %s: No such directory" % opts.proc, file=sys.stderr)
+        sys.exit(1)
+
     if opts.short < 3:
         print(FORMAT_STRING % (
             "PID", "PPID", "UID", "User", "Service", "Command"))
