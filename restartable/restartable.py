@@ -75,7 +75,7 @@ def guess_command(proc):
                     break
         if cmdline.startswith('/'):
             cmdline = os.path.basename(cmdline)
-        elif (cmdline.startswith('(') and cmdline.endswith(')') and proc.exe):
+        elif cmdline.startswith('(') and cmdline.endswith(')') and proc.exe:
             cmdline = os.path.basename(proc.exe)
     return cmdline
 
