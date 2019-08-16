@@ -75,8 +75,6 @@ def guess_command(proc):
                     break
         if cmdline.startswith('/'):
             cmdline = os.path.basename(cmdline)
-        else:
-            cmdline = cmdline.split()[-1]
     return cmdline
 
 
