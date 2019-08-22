@@ -125,6 +125,15 @@ class Proc(AttrDict):
             data = file.read()
         return AttrDict(line.split() for line in data.splitlines())
 
+    def _sysvipc(self, path):
+        """
+        Parses /proc/sysvipc/{msg,sem,shm} and returns a list of AttrDict's
+        """
+        with open(os.path.join(self.proc, "sysvipc", path)) as file:
+            data = file.read()
+        keys, *values = data.splitlines()
+        return [AttrDict(zip(keys.split(), _.split())) for _ in values]
+
     def __getitem__(self, path):
         """
         Creates dynamic attributes for elements in /proc/
@@ -141,6 +150,12 @@ class Proc(AttrDict):
             return ProcPid(proc=self.proc)
         elif path.isdigit():
             return ProcPid(path, proc=self.proc)
+        elif path == "sysvipc":
+            sysvipc = AttrDict()
+            # Maybe we shouldn't load them all at once
+            for elem in ('msg', 'sem', 'shm'):
+                sysvipc[elem] = self._sysvipc(elem)
+            self.__setitem__("sysvipc", sysvipc)
         else:
             path = os.path.join(self.proc, path)
             if os.path.islink(path):
