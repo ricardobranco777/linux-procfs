@@ -144,7 +144,7 @@ class Proc(AttrDict):
         else:
             path = os.path.join(self.proc, path)
             if os.path.islink(path):
-                self.__setitem__(path, path)
+                self.__setitem__(path, os.readlink(path))
             elif os.path.isfile(path):
                 with open(path) as file:
                     self.__setitem__(path, file.read())
@@ -361,7 +361,7 @@ class ProcPid(AttrDict):
         else:
             mode = os.lstat(path, dir_fd=self.dir_fd).st_mode
             if stat.S_ISLNK(mode):
-                self.__setitem__(path, path)
+                self.__setitem__(path, os.readlink(path, dir_fd=self.dir_fd))
             elif stat.S_ISREG(mode):
                 with open(path, opener=self.__opener) as file:
                     self.__setitem__(path, file.read())
