@@ -326,6 +326,22 @@ class ProcPid(AttrDict):
             AttrDict(zip(_mounts_fields, line.split()))
             for line in lines]
 
+    def _smaps(self):
+        """
+        Parses /proc/<pid>/smaps and returns a list of AttrDict's
+        """
+        with open("smaps", opener=self.__opener) as file:
+            lines = file.read().splitlines()
+        step = int(len(lines) / len(self.maps))
+        maps = [
+            AttrDict({
+                k: v.strip()
+                for k, v in [_.split(':') for _ in lines[i + 1: i + step]]})
+            for i in range(0, len(lines), step)]
+        for i, _ in enumerate(maps):
+            maps[i].update(self.maps[i])
+        return maps
+
     def _stat(self):
         """
         Parses /proc/<pid>/stat and returns an AttrDict
@@ -370,7 +386,7 @@ class ProcPid(AttrDict):
         except KeyError:
             pass
         if path in ('cmdline', 'comm', 'environ', 'io', 'limits',
-                    'maps', 'mounts', 'stat', 'statm', 'status'):
+                    'maps', 'mounts', 'smaps', 'stat', 'statm', 'status'):
             func = getattr(self, "_" + path)
             self.__setitem__(path, func())
         else:
