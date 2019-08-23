@@ -76,6 +76,9 @@ def guess_command(proc):
         if cmdline.startswith('/'):
             cmdline = os.path.basename(cmdline)
         elif cmdline.startswith('(') and cmdline.endswith(')') and proc.exe:
+            exe = proc.exe
+            if exe.endswith(" (deleted"):
+                exe = exe[:-len(" (deleted)")]
             cmdline = os.path.basename(proc.exe)
         else:
             cmdline = cmdline.split()[0]
