@@ -79,7 +79,7 @@ def guess_command(proc):
             exe = proc.exe
             if exe.endswith(" (deleted"):
                 exe = exe[:-len(" (deleted)")]
-            cmdline = os.path.basename(proc.exe)
+            cmdline = os.path.basename(exe)
         else:
             cmdline = cmdline.split()[0]
     return cmdline
