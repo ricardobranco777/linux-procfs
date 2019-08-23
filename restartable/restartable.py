@@ -47,6 +47,8 @@ SCRIPT_REGEX = r"/((perl|python|ruby)(\d?(\.\d)?)|(a|ba|c|da|fi|k|pdk|tc|z)?sh)$
 
 FORMAT_STRING = "%s\t%s\t%s\t%-20s\t%20s\t%s"
 
+DELETED = " (deleted)"
+
 opts = None
 services = set()
 
@@ -54,19 +56,29 @@ services = set()
 def guess_command(proc):
     """
     Guess the command being run
-    The command may be truncated to 15 chars in /proc/<pid>/{comm,stat,status}
-    If running a script, get the name of the script instead of the interpreter
-    Also, kernel usermode helpers use "none"
     """
     if opts.verbose:
-        # cmdline is empty if zombie
+        # cmdline is empty if zombie, but zombies have void proc.maps
         cmdline = " ".join(proc.cmdline)
-        if not cmdline:
-            return proc.status.Name
+        # Use full path
+        if not cmdline.startswith('/') and proc.exe:
+            exe = proc.exe
+            if exe.endswith(DELETED):
+                # Strip " (deleted)"
+                exe = exe[:-len(DELETED)]
+            basename = os.path.basename(exe)
+            if cmdline.startswith(basename):
+                cmdline = exe + cmdline[len(basename):]
+            else:
+                cmdline = exe
     else:
         cmdline = proc.status.Name
+        # The command may be truncated to 15 chars
+        #   in /proc/<pid>/{comm,stat,status}
+        # Also, kernel usermode helpers use "none"
         if proc.cmdline[0] and (len(cmdline) == 15 or cmdline == "none"):
             cmdline = proc.cmdline[0]
+        # If running a script, get the name of the script instead of the interpreter
         if re.search(SCRIPT_REGEX, cmdline):
             # Skip options
             for arg in proc.cmdline[1:]:
@@ -75,11 +87,6 @@ def guess_command(proc):
                     break
         if cmdline.startswith('/'):
             cmdline = os.path.basename(cmdline)
-        elif cmdline.startswith('(') and cmdline.endswith(')') and proc.exe:
-            exe = proc.exe
-            if exe.endswith(" (deleted"):
-                exe = exe[:-len(" (deleted)")]
-            cmdline = os.path.basename(exe)
         else:
             cmdline = cmdline.split()[0]
     return cmdline
@@ -145,11 +152,11 @@ def main():
             with ProcPid(pid, proc=opts.proc) as proc:
                 # Get deleted executable mappings
                 deleted = {
-                    _['pathname'][:-len(" (deleted)")]
+                    _['pathname'][:-len(DELETED)]
                     for _ in proc.maps
                     if (_['pathname']
                         and 'x' in _['perms']
-                        and _['pathname'].endswith(" (deleted)")
+                        and _['pathname'].endswith(DELETED)
                         and not _['pathname'].startswith(IGNORE))
                 }
                 if deleted:
