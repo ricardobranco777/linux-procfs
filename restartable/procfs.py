@@ -249,7 +249,7 @@ class ProcPid(AttrDict):
         # Escape newlines
         data = data.replace("\n", "\\n")
         if data.endswith('\0'):
-            return data[:-1].split('\0')
+            return data.rstrip('\0').split('\0')
         return [data]
 
     def _comm(self):
