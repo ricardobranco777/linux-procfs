@@ -334,13 +334,14 @@ class ProcPid(AttrDict):
             lines = file.read().splitlines()
         step = int(len(lines) / len(self.maps))
         maps = [
-            AttrDict({
+            {
                 k: v.strip()
-                for k, v in [_.split(':') for _ in lines[i + 1: i + step]]})
+                for k, v in [_.split(':') for _ in lines[i + 1: i + step]]
+            }
             for i in range(0, len(lines), step)]
-        for i, _ in enumerate(maps):
-            maps[i].update(self.maps[i])
-        return maps
+        # USE this instead when support for Python 3.4 is dropped:
+        # return [AttrDict(**a, **b) for a, b in zip(maps, self.maps)]
+        return [AttrDict(a, **b) for a, b in zip(maps, self.maps)]
 
     def _stat(self):
         """
