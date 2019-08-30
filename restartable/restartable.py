@@ -69,8 +69,6 @@ def guess_command(proc):
             basename = os.path.basename(exe)
             if cmdline.startswith(basename):
                 cmdline = exe + cmdline[len(basename):]
-            else:
-                cmdline = "%s %s" % (exe, cmdline)
     else:
         cmdline = proc.status.Name
         # The command may be truncated to 15 chars
