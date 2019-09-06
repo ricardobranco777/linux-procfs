@@ -43,7 +43,7 @@ IGNORE = (
 SYSTEMD_REGEX = r"\d+:name=systemd:/system\.slice/(?:.*/)?(.*)\.service$"
 
 # Regular expression to match scripting languages
-SCRIPT_REGEX = r"/((perl|python|ruby)(\d?(\.\d)?)|(a|ba|c|da|fi|k|pdk|tc|z)?sh)$"
+SCRIPT_REGEX = r"/((perl|python|(ruby\.)?ruby)(\d?(\.\d)?)|(a|ba|c|da|fi|k|pdk|tc|z)?sh)$"
 
 FORMAT_STRING = "%s\t%s\t%s\t%-20s\t%20s\t%s"
 
