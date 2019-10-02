@@ -15,7 +15,7 @@ from itertools import zip_longest
 from restartable.attrdict import AttrDict
 
 
-class Proc(AttrDict):
+class Proc(AttrDict):  # pylint: disable=too-many-ancestors
     """
     Class to parse /proc entries
     """
@@ -139,7 +139,7 @@ class Proc(AttrDict):
         Creates dynamic attributes for elements in /proc/
         """
         try:
-            return dict.__getitem__(self, path)
+            return super().__getitem__(path)
         except KeyError:
             pass
         if path in ("config", "cgroups", "cmdline", "cpuinfo",
@@ -165,7 +165,7 @@ class Proc(AttrDict):
                     self.__setitem__(path, file.read())
             elif os.path.isdir(path):
                 return os.listdir(path)
-        return dict.__getitem__(self, path)
+        return super().__getitem__(path)
 
 
 _limits_fields = {
@@ -207,7 +207,7 @@ _statm_fields = ('size', 'resident', 'shared', 'text', 'lib', 'data', 'dt')
 _status_XID_fields = ('real', 'effective', 'saved_set', 'filesystem')
 
 
-class ProcPid(AttrDict):
+class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
     """
     Class for managing /proc/<pid>/*
     """
@@ -381,7 +381,7 @@ class ProcPid(AttrDict):
         Creates dynamic attributes for elements in /proc/<pid>
         """
         try:
-            return dict.__getitem__(self, path)
+            return super().__getitem__(path)
         except KeyError:
             pass
         if path in ('cmdline', 'comm', 'environ', 'io', 'limits',
@@ -400,4 +400,4 @@ class ProcPid(AttrDict):
                 listing = os.listdir(dir_fd)
                 os.close(dir_fd)
                 return listing
-        return dict.__getitem__(self, path)
+        return super().__getitem__(path)
