@@ -86,7 +86,7 @@ class Proc(AttrDict):
         Parses /proc/cpuinfo and returns a list of AttrDict's
         """
         with open(os.path.join(self.proc, "cpuinfo")) as file:
-            cpus = [_ for _ in file.read()[:-1].split('\n\n')]
+            cpus = [file.read()[:-1].split('\n\n')]
         return [
             AttrDict([map(str.strip, line.split(':'))
                       for line in cpu.splitlines()])
@@ -268,9 +268,7 @@ class ProcPid(AttrDict):
         with open("environ", opener=self.__opener) as file:
             data = file.read()
         try:
-            return {
-                k: v for k, v in [
-                    _.split('=', 1) for _ in data[:-1].split('\0')]}
+            return dict([_.split('=', 1) for _ in data[:-1].split('\0')])
         except ValueError:
             return data
 
