@@ -15,19 +15,71 @@ from itertools import zip_longest
 from restartable.attrdict import AttrDict
 
 
-class Proc(AttrDict):  # pylint: disable=too-many-ancestors
+class _Mixin:
+    """
+    Mixin class to share methods between Proc() and ProcPid()
+    """
+    dir_fd = None
+
+    def __del__(self):
+        if self.dir_fd is not None:
+            os.close(self.dir_fd)
+        self.dir_fd = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.dir_fd is not None:
+            os.close(self.dir_fd)
+        self.dir_fd = None
+
+    def _opener(self, path, flags):
+        return os.open(path, flags, dir_fd=self.dir_fd)
+
+    def get_dirfd(self, path, dir_fd=None):
+        """
+        Get directory file descriptor
+        """
+        self.dir_fd = os.open(path, os.O_RDONLY, dir_fd=dir_fd)
+
+    def foobar(self, path, follow_symlinks=False):
+        """
+        Get contents from file, symlink or directory
+        """
+        xstat = os.stat if follow_symlinks else os.lstat
+        mode = xstat(path, dir_fd=self.dir_fd).st_mode
+        if stat.S_ISLNK(mode):
+            return os.readlink(path, dir_fd=self.dir_fd)
+        if stat.S_ISREG(mode):
+            with open(path, opener=self._opener) as file:
+                return file.read()
+        if stat.S_ISDIR(mode):
+            dir_fd = os.open(path, os.O_RDONLY, dir_fd=self.dir_fd)
+            try:
+                listing = os.listdir(dir_fd)
+            except OSError as err:
+                raise err
+            finally:
+                os.close(dir_fd)
+            return listing
+        return None
+
+
+class Proc(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
     """
     Class to parse /proc entries
     """
     def __init__(self, proc="/proc"):
         self.proc = proc
+        self.get_dirfd(proc)
         super().__init__()
 
     def pids(self):
         """
         Returns a list of all the processes in the system
         """
-        return filter(str.isdigit, os.listdir(self.proc))
+        return filter(str.isdigit, os.listdir(self.dir_fd))
 
     def tasks(self):
         """
@@ -35,10 +87,11 @@ class Proc(AttrDict):  # pylint: disable=too-many-ancestors
         """
         #  We could use a list comprehension but a PID could disappear
         for pid in self.pids():
-            try:
-                yield from os.listdir(os.path.join(self.proc, pid, "task"))
-            except FileNotFoundError:
-                pass
+            with ProcPid(pid, dir_fd=self.dir_fd) as proc:
+                try:
+                    yield from proc.task
+                except FileNotFoundError:
+                    pass
 
     def _config(self):
         """
@@ -69,7 +122,7 @@ class Proc(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/cgroup and returns a list of AttrDict's
         """
-        with open(os.path.join(self.proc, "cgroups")) as file:
+        with open("cgroups", opener=self._opener) as file:
             data = file.read()
         keys, *values = data.splitlines()
         return [AttrDict(zip(keys[1:].split(), _.split())) for _ in values]
@@ -78,14 +131,14 @@ class Proc(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/cmdline and returns a list
         """
-        with open(os.path.join(self.proc, "cmdline")) as file:
+        with open("cmdline", opener=self._opener) as file:
             return file.read().strip()
 
     def _cpuinfo(self):
         """
         Parses /proc/cpuinfo and returns a list of AttrDict's
         """
-        with open(os.path.join(self.proc, "cpuinfo")) as file:
+        with open("cpuinfo", opener=self._opener) as file:
             cpus = [file.read()[:-1].split('\n\n')]
         return [
             AttrDict([map(str.strip, line.split(':'))
@@ -96,7 +149,7 @@ class Proc(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/meminfo and returns an AttrDict
         """
-        with open(os.path.join(self.proc, "meminfo")) as file:
+        with open("meminfo", opener=self._opener) as file:
             lines = file.read().splitlines()
         return AttrDict([map(str.strip, line.split(':')) for line in lines])
 
@@ -105,14 +158,14 @@ class Proc(AttrDict):  # pylint: disable=too-many-ancestors
         Parses /proc/mounts and returns a list of AttrDict's
         """
         # /proc/mounts is a symlink to /proc/self/mounts
-        with ProcPid(proc=self.proc) as proc_self:
+        with ProcPid(dir_fd=self.dir_fd) as proc_self:
             return proc_self.mounts
 
     def _swaps(self):
         """
         Parses /proc/swaps and returns a list of AttrDict's
         """
-        with open(os.path.join(self.proc, "swaps")) as file:
+        with open("swaps", opener=self._opener) as file:
             data = file.read()
         keys, *values = data.splitlines()
         return [AttrDict(zip(keys.split(), _.split())) for _ in values]
@@ -121,7 +174,7 @@ class Proc(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/vmstat and returns an AttrDict
         """
-        with open(os.path.join(self.proc, "vmstat")) as file:
+        with open("vmstat", opener=self._opener) as file:
             data = file.read()
         return AttrDict(line.split() for line in data.splitlines())
 
@@ -129,7 +182,7 @@ class Proc(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/sysvipc/{msg,sem,shm} and returns a list of AttrDict's
         """
-        with open(os.path.join(self.proc, "sysvipc", path)) as file:
+        with open(os.path.join("sysvipc", path), opener=self._opener) as file:
             data = file.read()
         keys, *values = data.splitlines()
         return [AttrDict(zip(keys.split(), _.split())) for _ in values]
@@ -147,21 +200,14 @@ class Proc(AttrDict):  # pylint: disable=too-many-ancestors
             func = getattr(self, "_" + path)
             self[path] = func()
         elif path == "self":
-            return ProcPid(proc=self.proc)
+            return ProcPid(dir_fd=self.dir_fd)
         elif path.isdigit():
-            return ProcPid(path, proc=self.proc)
+            return ProcPid(path, dir_fd=self.dir_fd)
         elif path == "sysvipc":
             # Maybe we shouldn't load them all at once
-            self["sysvipc"] = AttrDict({k: self._sysvipc(k) for k in ('msg', 'sem', 'shm')})
+            self[path] = AttrDict({k: self._sysvipc(k) for k in ('msg', 'sem', 'shm')})
         else:
-            path = os.path.join(self.proc, path)
-            if os.path.islink(path):
-                self[path] = os.readlink(path)
-            elif os.path.isfile(path):
-                with open(path) as file:
-                    self[path] = file.read()
-            elif os.path.isdir(path):
-                return os.listdir(path)
+            self[path] = self.foobar(path)
         return super().__getitem__(path)
 
 
@@ -204,44 +250,27 @@ _statm_fields = ('size', 'resident', 'shared', 'text', 'lib', 'data', 'dt')
 _status_XID_fields = ('real', 'effective', 'saved_set', 'filesystem')
 
 
-class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
+class ProcPid(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
     """
     Class for managing /proc/<pid>/*
     """
-    def __init__(self, pid=None, proc="/proc"):
+    def __init__(self, pid=None, proc="/proc", dir_fd=None):
         if pid is None:
             pid = os.getpid()
         if not isinstance(pid, (int, str)) and int(pid) <= 0:
             raise ValueError("Invalid pid %s" % pid)
         self.pid = str(pid)
-        self.dir_fd = None
-        try:
-            self.dir_fd = os.open(os.path.join(proc, self.pid), os.O_RDONLY)
-        except OSError as err:
-            raise err
+        if dir_fd is None:
+            self.get_dirfd(os.path.join(proc, self.pid))
+        else:
+            self.get_dirfd(self.pid, dir_fd=dir_fd)
         super().__init__()
-
-    def __enter__(self):
-        return self
-
-    def __del__(self):
-        if self.dir_fd is not None:
-            os.close(self.dir_fd)
-        self.dir_fd = None
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self.dir_fd is not None:
-            os.close(self.dir_fd)
-        self.dir_fd = None
-
-    def __opener(self, path, flags):
-        return os.open(path, flags, dir_fd=self.dir_fd)
 
     def _cmdline(self):
         """
         Parses /proc/<pid>/cmdline and returns a list
         """
-        with open("cmdline", opener=self.__opener) as file:
+        with open("cmdline", opener=self._opener) as file:
             data = file.read()
         # Escape newlines
         data = data.replace("\n", "\\n")
@@ -253,7 +282,7 @@ class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/comm
         """
-        with open("comm", opener=self.__opener) as file:
+        with open("comm", opener=self._opener) as file:
             data = file.read()
         # Strip trailing newline
         return data[:-1]
@@ -262,7 +291,7 @@ class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/<pid>/environ and returns an AttrDict
         """
-        with open("environ", opener=self.__opener) as file:
+        with open("environ", opener=self._opener) as file:
             data = file.read()
         try:
             return AttrDict([_.split('=', 1) for _ in data[:-1].split('\0')])
@@ -273,7 +302,7 @@ class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/<pid>/io and returns an AttrDict
         """
-        with open("io", opener=self.__opener) as file:
+        with open("io", opener=self._opener) as file:
             lines = file.read().splitlines()
         return AttrDict([_.split(': ') for _ in lines])
 
@@ -281,7 +310,7 @@ class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/<pid>/limits and returns an AttrDict
         """
-        with open("limits", opener=self.__opener) as file:
+        with open("limits", opener=self._opener) as file:
             data = re.findall(
                 r'^(.*?)\s{2,}(\S+)\s{2,}(\S+)', file.read(), re.M)[1:]
         return AttrDict(
@@ -292,7 +321,7 @@ class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/<pid>/maps and returns a list of AttrDict's
         """
-        with open("maps", opener=self.__opener) as file:
+        with open("maps", opener=self._opener) as file:
             lines = file.read().splitlines()
         maps = [
             AttrDict(zip_longest(_maps_fields, line.split(maxsplit=5)))
@@ -315,7 +344,7 @@ class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/<pid>/mounts and returns a list of AttrDict's
         """
-        with open("mounts", opener=self.__opener) as file:
+        with open("mounts", opener=self._opener) as file:
             lines = file.read().splitlines()
         return [
             AttrDict(zip(_mounts_fields, line.split()))
@@ -325,7 +354,7 @@ class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/<pid>/smaps and returns a list of AttrDict's
         """
-        with open("smaps", opener=self.__opener) as file:
+        with open("smaps", opener=self._opener) as file:
             lines = file.read().splitlines()
         step = int(len(lines) / len(self.maps))
         maps = [
@@ -342,7 +371,7 @@ class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/<pid>/stat and returns an AttrDict
         """
-        with open("stat", opener=self.__opener) as file:
+        with open("stat", opener=self._opener) as file:
             data = re.findall(r"\(.*\)|\S+", file.read()[:-1], re.M | re.S)
         info = AttrDict(zip(_stat_fields, data))
         # Remove parentheses
@@ -355,7 +384,7 @@ class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/<pid>/statm and returns an AttrDict
         """
-        with open("statm", opener=self.__opener) as file:
+        with open("statm", opener=self._opener) as file:
             data = map(int, file.read().split())
         return AttrDict(zip(_statm_fields, data))
 
@@ -363,7 +392,7 @@ class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/<pid>/status and returns an AttrDict
         """
-        with open("status", opener=self.__opener) as file:
+        with open("status", opener=self._opener) as file:
             lines = file.read().splitlines()
         status = AttrDict([_.split(':\t') for _ in lines])
         status['Uid'] = AttrDict(
@@ -386,15 +415,5 @@ class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
             func = getattr(self, "_" + path)
             self[path] = func()
         else:
-            mode = os.lstat(path, dir_fd=self.dir_fd).st_mode
-            if stat.S_ISLNK(mode):
-                self[path] = os.readlink(path, dir_fd=self.dir_fd)
-            elif stat.S_ISREG(mode):
-                with open(path, opener=self.__opener) as file:
-                    self[path] = file.read()
-            elif stat.S_ISDIR(mode):
-                dir_fd = os.open(path, os.O_RDONLY, dir_fd=self.dir_fd)
-                listing = os.listdir(dir_fd)
-                os.close(dir_fd)
-                return listing
+            return self.foobar(path)
         return super().__getitem__(path)
