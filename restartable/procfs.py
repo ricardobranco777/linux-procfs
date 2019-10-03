@@ -71,7 +71,6 @@ class Proc(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
     Class to parse /proc entries
     """
     def __init__(self, proc="/proc"):
-        self.proc = proc
         self.get_dirfd(proc)
         super().__init__()
 
@@ -100,19 +99,23 @@ class Proc(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
         """
         lines = None
         paths = [
-            os.path.join(self.proc, "config.gz"),
-            "boot/config-%s" % os.uname().release,
+            "config.gz",
+            "/boot/config-%s" % os.uname().release,
             "/lib/modules/%s/build/.config" % os.uname().release
         ]
         for path in paths:
-            if os.path.exists(path):
-                if path.endswith("gz"):
-                    with gzip.open(path) as file:
+            try:
+                os.stat(path, dir_fd=self.dir_fd)
+            except FileNotFoundError:
+                continue
+            if path.endswith(".gz"):
+                with open(path, "rb", opener=self._opener) as f:
+                    with gzip.open(f) as file:
                         lines = file.read().decode('utf-8').splitlines()
-                else:
-                    with open(path) as file:
-                        lines = file.read().splitlines()
-                break
+            else:
+                with open(path) as file:
+                    lines = file.read().splitlines()
+            break
         if lines is None:
             return None
         return AttrDict(
