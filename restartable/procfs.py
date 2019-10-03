@@ -263,12 +263,12 @@ class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
 
     def _environ(self):
         """
-        Parses /proc/<pid>/environ and returns a dictionary
+        Parses /proc/<pid>/environ and returns an AttrDict
         """
         with open("environ", opener=self.__opener) as file:
             data = file.read()
         try:
-            return dict([_.split('=', 1) for _ in data[:-1].split('\0')])
+            return AttrDict([_.split('=', 1) for _ in data[:-1].split('\0')])
         except ValueError:
             return data
 
