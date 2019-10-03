@@ -145,24 +145,21 @@ class Proc(AttrDict):  # pylint: disable=too-many-ancestors
         if path in ("config", "cgroups", "cmdline", "cpuinfo",
                     "meminfo", "mounts", "swaps", "vmstat"):
             func = getattr(self, "_" + path)
-            self.__setitem__(path, func())
+            self[path] = func()
         elif path == "self":
             return ProcPid(proc=self.proc)
         elif path.isdigit():
             return ProcPid(path, proc=self.proc)
         elif path == "sysvipc":
-            sysvipc = AttrDict()
             # Maybe we shouldn't load them all at once
-            for elem in ('msg', 'sem', 'shm'):
-                sysvipc[elem] = self._sysvipc(elem)
-            self.__setitem__("sysvipc", sysvipc)
+            self["sysvipc"] = AttrDict({k: self._sysvipc(k) for k in ('msg', 'sem', 'shm')})
         else:
             path = os.path.join(self.proc, path)
             if os.path.islink(path):
-                self.__setitem__(path, os.readlink(path))
+                self[path] = os.readlink(path)
             elif os.path.isfile(path):
                 with open(path) as file:
-                    self.__setitem__(path, file.read())
+                    self[path] = file.read()
             elif os.path.isdir(path):
                 return os.listdir(path)
         return super().__getitem__(path)
@@ -387,14 +384,14 @@ class ProcPid(AttrDict):  # pylint: disable=too-many-ancestors
         if path in ('cmdline', 'comm', 'environ', 'io', 'limits',
                     'maps', 'mounts', 'smaps', 'stat', 'statm', 'status'):
             func = getattr(self, "_" + path)
-            self.__setitem__(path, func())
+            self[path] = func()
         else:
             mode = os.lstat(path, dir_fd=self.dir_fd).st_mode
             if stat.S_ISLNK(mode):
-                self.__setitem__(path, os.readlink(path, dir_fd=self.dir_fd))
+                self[path] = os.readlink(path, dir_fd=self.dir_fd)
             elif stat.S_ISREG(mode):
                 with open(path, opener=self.__opener) as file:
-                    self.__setitem__(path, file.read())
+                    self[path] = file.read()
             elif stat.S_ISDIR(mode):
                 dir_fd = os.open(path, os.O_RDONLY, dir_fd=self.dir_fd)
                 listing = os.listdir(dir_fd)
