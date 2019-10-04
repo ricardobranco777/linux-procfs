@@ -19,43 +19,43 @@ class _Mixin:
     """
     Mixin class to share methods between Proc() and ProcPid()
     """
-    dir_fd = None
+    _dir_fd = None
 
     def __del__(self):
-        if self.dir_fd is not None:
-            os.close(self.dir_fd)
-        self.dir_fd = None
+        if self._dir_fd is not None:
+            os.close(self._dir_fd)
+        self._dir_fd = None
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.dir_fd is not None:
-            os.close(self.dir_fd)
-        self.dir_fd = None
+        if self._dir_fd is not None:
+            os.close(self._dir_fd)
+        self._dir_fd = None
 
     def _opener(self, path, flags):
-        return os.open(path, flags, dir_fd=self.dir_fd)
+        return os.open(path, flags, dir_fd=self._dir_fd)
 
-    def get_dirfd(self, path, dir_fd=None):
+    def _get_dirfd(self, path, dir_fd=None):
         """
         Get directory file descriptor
         """
-        self.dir_fd = os.open(path, os.O_RDONLY, dir_fd=dir_fd)
+        self._dir_fd = os.open(path, os.O_RDONLY, dir_fd=dir_fd)
 
-    def foobar(self, path, follow_symlinks=False):
+    def _foobar(self, path, follow_symlinks=False):
         """
         Get contents from file, symlink or directory
         """
         xstat = os.stat if follow_symlinks else os.lstat
-        mode = xstat(path, dir_fd=self.dir_fd).st_mode
+        mode = xstat(path, dir_fd=self._dir_fd).st_mode
         if stat.S_ISLNK(mode):
-            return os.readlink(path, dir_fd=self.dir_fd)
+            return os.readlink(path, dir_fd=self._dir_fd)
         if stat.S_ISREG(mode):
             with open(path, opener=self._opener) as file:
                 return file.read()
         if stat.S_ISDIR(mode):
-            dir_fd = os.open(path, os.O_RDONLY, dir_fd=self.dir_fd)
+            dir_fd = os.open(path, os.O_RDONLY, dir_fd=self._dir_fd)
             try:
                 listing = os.listdir(dir_fd)
             except OSError as err:
@@ -71,14 +71,14 @@ class Proc(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
     Class to parse /proc entries
     """
     def __init__(self, proc="/proc"):
-        self.get_dirfd(proc)
+        self._get_dirfd(proc)
         super().__init__()
 
     def pids(self):
         """
         Returns a list of all the processes in the system
         """
-        return filter(str.isdigit, os.listdir(self.dir_fd))
+        return filter(str.isdigit, os.listdir(self._dir_fd))
 
     def tasks(self):
         """
@@ -86,7 +86,7 @@ class Proc(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
         """
         #  We could use a list comprehension but a PID could disappear
         for pid in self.pids():
-            with ProcPid(pid, dir_fd=self.dir_fd) as proc:
+            with ProcPid(pid, dir_fd=self._dir_fd) as proc:
                 try:
                     yield from proc.task
                 except FileNotFoundError:
@@ -105,7 +105,7 @@ class Proc(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
         ]
         for path in paths:
             try:
-                os.stat(path, dir_fd=self.dir_fd)
+                os.stat(path, dir_fd=self._dir_fd)
             except FileNotFoundError:
                 continue
             if path.endswith(".gz"):
@@ -161,7 +161,7 @@ class Proc(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
         Parses /proc/mounts and returns a list of AttrDict's
         """
         # /proc/mounts is a symlink to /proc/self/mounts
-        with ProcPid(dir_fd=self.dir_fd) as proc_self:
+        with ProcPid(dir_fd=self._dir_fd) as proc_self:
             return proc_self.mounts
 
     def _swaps(self):
@@ -203,14 +203,14 @@ class Proc(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
             func = getattr(self, "_" + path)
             self[path] = func()
         elif path == "self":
-            return ProcPid(dir_fd=self.dir_fd)
+            return ProcPid(dir_fd=self._dir_fd)
         elif path.isdigit():
-            return ProcPid(path, dir_fd=self.dir_fd)
+            return ProcPid(path, dir_fd=self._dir_fd)
         elif path == "sysvipc":
             # Maybe we shouldn't load them all at once
             self[path] = AttrDict({k: self._sysvipc(k) for k in ('msg', 'sem', 'shm')})
         else:
-            self[path] = self.foobar(path)
+            self[path] = self._foobar(path)
         return super().__getitem__(path)
 
 
@@ -264,9 +264,9 @@ class ProcPid(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
             raise ValueError("Invalid pid %s" % pid)
         self.pid = str(pid)
         if dir_fd is None:
-            self.get_dirfd(os.path.join(proc, self.pid))
+            self._get_dirfd(os.path.join(proc, self.pid))
         else:
-            self.get_dirfd(self.pid, dir_fd=dir_fd)
+            self._get_dirfd(self.pid, dir_fd=dir_fd)
         super().__init__()
 
     def _cmdline(self):
@@ -339,7 +339,7 @@ class ProcPid(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
             if map_.pathname and "\\012" in map_.pathname:
                 map_.pathname = os.readlink(
                     "map_files/%s" % map_.address,
-                    dir_fd=self.dir_fd
+                    dir_fd=self._dir_fd
                 ).replace("\n", "\\n")
         return maps
 
@@ -418,5 +418,5 @@ class ProcPid(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
             func = getattr(self, "_" + path)
             self[path] = func()
         else:
-            return self.foobar(path)
+            return self._foobar(path)
         return super().__getitem__(path)
