@@ -9,16 +9,16 @@ Module with classes to parse /proc entries
 import gzip
 import os
 import re
-import stat
 from itertools import zip_longest
 
-from restartable.attrdict import AttrDict
+from restartable.attrdict import AttrDict, FSDict
 
 
 class _Mixin:
     """
     Mixin class to share methods between Proc() and ProcPid()
     """
+
     _dir_fd = None
 
     def __del__(self):
@@ -34,39 +34,14 @@ class _Mixin:
             os.close(self._dir_fd)
         self._dir_fd = None
 
-    def _opener(self, path, flags):
-        return os.open(path, flags, dir_fd=self._dir_fd)
-
     def _get_dirfd(self, path, dir_fd=None):
         """
         Get directory file descriptor
         """
         self._dir_fd = os.open(path, os.O_RDONLY, dir_fd=dir_fd)
 
-    def _foobar(self, path, follow_symlinks=False):
-        """
-        Get contents from file, symlink or directory
-        """
-        xstat = os.stat if follow_symlinks else os.lstat
-        mode = xstat(path, dir_fd=self._dir_fd).st_mode
-        if stat.S_ISLNK(mode):
-            return os.readlink(path, dir_fd=self._dir_fd)
-        if stat.S_ISREG(mode):
-            with open(path, opener=self._opener) as file:
-                return file.read()
-        if stat.S_ISDIR(mode):
-            dir_fd = os.open(path, os.O_RDONLY, dir_fd=self._dir_fd)
-            try:
-                listing = os.listdir(dir_fd)
-            except OSError as err:
-                raise err
-            finally:
-                os.close(dir_fd)
-            return listing
-        return None
 
-
-class Proc(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
+class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
     """
     Class to parse /proc entries
     """
@@ -190,28 +165,21 @@ class Proc(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
         keys, *values = data.splitlines()
         return [AttrDict(zip(keys.split(), _.split())) for _ in values]
 
-    def __getitem__(self, path):
+    def __missing__(self, path):
         """
         Creates dynamic attributes for elements in /proc/
         """
-        try:
-            return super().__getitem__(path)
-        except KeyError:
-            pass
         if path in ("config", "cgroups", "cmdline", "cpuinfo",
                     "meminfo", "mounts", "swaps", "vmstat"):
             func = getattr(self, "_" + path)
-            self[path] = func()
-        elif path == "self":
+            return func()
+        if path == "self":
             return ProcPid(dir_fd=self._dir_fd)
-        elif path.isdigit():
+        if path.isdigit():
             return ProcPid(path, dir_fd=self._dir_fd)
-        elif path == "sysvipc":
-            # Maybe we shouldn't load them all at once
-            self[path] = AttrDict({k: self._sysvipc(k) for k in ('msg', 'sem', 'shm')})
-        else:
-            self[path] = self._foobar(path)
-        return super().__getitem__(path)
+        if path == "sysvipc":
+            return FSDict(dir_fd=self._dir_fd, handler=self._sysvipc)
+        return super().__missing__(path)
 
 
 _limits_fields = {
@@ -253,7 +221,7 @@ _statm_fields = ('size', 'resident', 'shared', 'text', 'lib', 'data', 'dt')
 _status_XID_fields = ('real', 'effective', 'saved_set', 'filesystem')
 
 
-class ProcPid(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
+class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
     """
     Class for managing /proc/<pid>/*
     """
@@ -405,18 +373,12 @@ class ProcPid(AttrDict, _Mixin):  # pylint: disable=too-many-ancestors
         # status['Name'] = status['Name'].replace("\\n", "\n")
         return status
 
-    def __getitem__(self, path):
+    def __missing__(self, path):
         """
         Creates dynamic attributes for elements in /proc/<pid>
         """
-        try:
-            return super().__getitem__(path)
-        except KeyError:
-            pass
         if path in ('cmdline', 'comm', 'environ', 'io', 'limits',
                     'maps', 'mounts', 'smaps', 'stat', 'statm', 'status'):
             func = getattr(self, "_" + path)
-            self[path] = func()
-        else:
-            return self._foobar(path)
-        return super().__getitem__(path)
+            return func()
+        return super().__missing__(path)
