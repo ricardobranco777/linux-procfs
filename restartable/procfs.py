@@ -40,6 +40,19 @@ class _Mixin:
         """
         self._dir_fd = os.open(path, os.O_RDONLY, dir_fd=dir_fd)
 
+    def _lsdir(self, path):
+        """
+        Returns os.listdir() on path
+        """
+        dir_fd = os.open(path, os.O_RDONLY, dir_fd=self._dir_fd)
+        try:
+            listing = os.listdir(dir_fd)
+        except OSError as err:
+            raise err
+        finally:
+            os.close(dir_fd)
+        return listing
+
 
 class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
     """
@@ -372,6 +385,11 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
             zip(_status_XID_fields, map(int, status.Gid.split())))
         # status['Name'] = status['Name'].replace("\\n", "\n")
         return status
+
+    def __getitem__(self, path):
+        if path in ('fd', 'map_files', 'task'):
+            return self._lsdir(path)
+        return super().__getitem__(path)
 
     def __missing__(self, path):
         """
