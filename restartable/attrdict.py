@@ -39,6 +39,9 @@ class FSDict(AttrDict):
         return "%s(path=%s, dir_fd=%s, handler=%s)" % (
             type(self).__name__, self._path if self._path else '""', self._dir_fd, self._handler)
 
+    def __str__(self):
+        return str(self._lsdir(self._path))
+
     def __getitem__(self, item):
         value = super().__getitem__(item)
         super().__setitem__(item, value)
@@ -46,6 +49,21 @@ class FSDict(AttrDict):
 
     def _opener(self, path, flags):
         return os.open(path, flags, dir_fd=self._dir_fd)
+
+    def _lsdir(self, path):
+        """
+        Returns os.listdir() on path
+        """
+        if not path:
+            return os.listdir(self._dir_fd)
+        dir_fd = os.open(path, os.O_RDONLY, dir_fd=self._dir_fd)
+        try:
+            listing = os.listdir(dir_fd)
+        except OSError as err:
+            raise err
+        finally:
+            os.close(dir_fd)
+        return listing
 
     def __missing__(self, path):
         """
