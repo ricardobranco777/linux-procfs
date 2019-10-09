@@ -40,19 +40,6 @@ class _Mixin:
         """
         self._dir_fd = os.open(path, os.O_RDONLY, dir_fd=dir_fd)
 
-    def _lsdir(self, path):
-        """
-        Returns os.listdir() on path
-        """
-        dir_fd = os.open(path, os.O_RDONLY, dir_fd=self._dir_fd)
-        try:
-            listing = os.listdir(dir_fd)
-        except OSError as err:
-            raise err
-        finally:
-            os.close(dir_fd)
-        return listing
-
 
 class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
     """
@@ -195,7 +182,7 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         if path.isdigit():
             return ProcPid(path, dir_fd=self._dir_fd)
         if path == "sysvipc":
-            return FSDict(dir_fd=self._dir_fd, handler=self._sysvipc)
+            return FSDict(path=path, dir_fd=self._dir_fd, handler=self._sysvipc)
         return super().__missing__(path)
 
 
