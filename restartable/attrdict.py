@@ -10,6 +10,18 @@ import stat
 from collections import UserDict
 
 
+def sorted_alnum(list_):
+    """
+    Returns a list sorted in-place alphanumerically.
+    Useful for directories, like /proc, that contain pids and other files
+    """
+    # Sort alphabetically
+    list_.sort()
+    # Sort numerically
+    list_.sort(key=lambda x: int(x) if x.isdigit() else float('inf'))
+    return list_
+
+
 # pylint: disable=too-many-ancestors
 
 # As dict is not supposed to be subclassed directly, use UserDict instead
@@ -55,7 +67,7 @@ class FSDict(AttrDict):
         Returns os.listdir() on path
         """
         if not path:
-            return os.listdir(self._dir_fd)
+            return sorted_alnum(os.listdir(self._dir_fd))
         dir_fd = os.open(path, os.O_RDONLY, dir_fd=self._dir_fd)
         try:
             listing = os.listdir(dir_fd)
@@ -63,7 +75,7 @@ class FSDict(AttrDict):
             raise err
         finally:
             os.close(dir_fd)
-        return listing
+        return sorted_alnum(listing)
 
     def __missing__(self, path):
         """
