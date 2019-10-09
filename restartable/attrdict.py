@@ -35,6 +35,10 @@ class FSDict(AttrDict):
         self._handler = handler
         super().__init__()
 
+    def __repr__(self):
+        return "%s(path=%s, dir_fd=%s, handler=%s)" % (
+            type(self).__name__, self._path if self._path else '""', self._dir_fd, self._handler)
+
     def __getitem__(self, item):
         value = super().__getitem__(item)
         super().__setitem__(item, value)

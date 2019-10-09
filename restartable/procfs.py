@@ -59,8 +59,12 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
     Class to parse /proc entries
     """
     def __init__(self, proc="/proc"):
+        self._proc = proc
         self._get_dirfd(proc)
         super().__init__()
+
+    def __repr__(self):
+        return "%s(proc=%s)" % (type(self).__name__, self._proc)
 
     def pids(self):
         """
@@ -248,7 +252,12 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
             self._get_dirfd(os.path.join(proc, self.pid))
         else:
             self._get_dirfd(self.pid, dir_fd=dir_fd)
+        self._proc = proc
         super().__init__()
+
+    def __repr__(self):
+        return "%s(pid=%s, proc=%s)" % (
+            type(self).__name__, self._pid, self.proc)
 
     def _cmdline(self):
         """
