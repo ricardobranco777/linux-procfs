@@ -51,9 +51,6 @@ class FSDict(AttrDict):
         return "%s(path=%s, dir_fd=%s, handler=%s)" % (
             type(self).__name__, self._path if self._path else '""', self._dir_fd, self._handler)
 
-    def __str__(self):
-        return "\0".join(self._lsdir(self._path))
-
     def __getitem__(self, item):
         value = super().__getitem__(item)
         super().__setitem__(item, value)
