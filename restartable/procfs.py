@@ -41,6 +41,22 @@ class _Mixin:
         self._dir_fd = os.open(path, os.O_RDONLY, dir_fd=dir_fd)
 
 
+class Property:  # pylint: disable=too-few-public-methods
+    """
+    Simple property class decorator to avoid boilerplate code
+    """
+    def __init__(self, fget=None):
+        self.fget = fget
+        self.name = fget.__name__
+
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            return self
+        if self.name not in obj:
+            obj[self.name] = self.fget(obj)
+        return obj[self.name]
+
+
 class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
     """
     Class to parse /proc entries
@@ -71,7 +87,8 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
                 except FileNotFoundError:
                     pass
 
-    def _config(self):
+    @Property
+    def config(self):
         """
         Parses /proc/config.gz and returns an AttrDict
         If /proc/config.gz doesn't exist, try /boot or /lib/modules/
@@ -100,7 +117,8 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         return AttrDict(
             line.split('=') for line in lines if line.startswith("CONFIG_"))
 
-    def _cgroups(self):
+    @Property
+    def cgroups(self):
         """
         Parses /proc/cgroup and returns a list of AttrDict's
         """
@@ -109,14 +127,16 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         keys, *values = data.splitlines()
         return [AttrDict(zip(keys[1:].split(), _.split())) for _ in values]
 
-    def _cmdline(self):
+    @Property
+    def cmdline(self):
         """
         Parses /proc/cmdline and returns a list
         """
         with open("cmdline", opener=self._opener) as file:
             return file.read().strip()
 
-    def _cpuinfo(self):
+    @Property
+    def cpuinfo(self):
         """
         Parses /proc/cpuinfo and returns a list of AttrDict's
         """
@@ -127,7 +147,8 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
                       for line in cpu.splitlines()])
             for cpu in cpus]
 
-    def _meminfo(self):
+    @Property
+    def meminfo(self):
         """
         Parses /proc/meminfo and returns an AttrDict
         """
@@ -135,7 +156,8 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
             lines = file.read().splitlines()
         return AttrDict([map(str.strip, line.split(':')) for line in lines])
 
-    def _mounts(self):
+    @Property
+    def mounts(self):
         """
         Parses /proc/mounts and returns a list of AttrDict's
         """
@@ -143,7 +165,8 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         with ProcPid(dir_fd=self._dir_fd) as proc_self:
             return proc_self.mounts
 
-    def _swaps(self):
+    @Property
+    def swaps(self):
         """
         Parses /proc/swaps and returns a list of AttrDict's
         """
@@ -152,7 +175,8 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         keys, *values = data.splitlines()
         return [AttrDict(zip(keys.split(), _.split())) for _ in values]
 
-    def _vmstat(self):
+    @Property
+    def vmstat(self):
         """
         Parses /proc/vmstat and returns an AttrDict
         """
@@ -175,8 +199,7 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         """
         if path in ("config", "cgroups", "cmdline", "cpuinfo",
                     "meminfo", "mounts", "swaps", "vmstat"):
-            func = getattr(self, "_" + path)
-            return func()
+            return getattr(self, path)
         if path == "self":
             return ProcPid(dir_fd=self._dir_fd)
         if path.isdigit():
@@ -246,7 +269,8 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         return "%s(pid=%s, proc=%s)" % (
             type(self).__name__, self._pid, self.proc)
 
-    def _cmdline(self):
+    @Property
+    def cmdline(self):
         """
         Parses /proc/<pid>/cmdline and returns a list
         """
@@ -258,7 +282,8 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
             return data.rstrip('\0').split('\0')
         return [data]
 
-    def _comm(self):
+    @Property
+    def comm(self):  # pylint: disable=method-hidden # https://github.com/PyCQA/pylint/issues/414
         """
         Parses /proc/comm
         """
@@ -267,7 +292,8 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         # Strip trailing newline
         return data[:-1]
 
-    def _environ(self):
+    @Property
+    def environ(self):
         """
         Parses /proc/<pid>/environ and returns an AttrDict
         """
@@ -278,7 +304,8 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         except ValueError:
             return data
 
-    def _io(self):
+    @Property
+    def io(self):
         """
         Parses /proc/<pid>/io and returns an AttrDict
         """
@@ -286,7 +313,8 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
             lines = file.read().splitlines()
         return AttrDict([_.split(': ') for _ in lines])
 
-    def _limits(self):
+    @Property
+    def limits(self):
         """
         Parses /proc/<pid>/limits and returns an AttrDict
         """
@@ -297,7 +325,8 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
             {_limits_fields[k]: AttrDict(zip(('soft', 'hard'), v))
              for (k, *v) in data})
 
-    def _maps(self):
+    @Property
+    def maps(self):
         """
         Parses /proc/<pid>/maps and returns a list of AttrDict's
         """
@@ -320,7 +349,8 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
                 ).replace("\n", "\\n")
         return maps
 
-    def _mounts(self):
+    @Property
+    def mounts(self):
         """
         Parses /proc/<pid>/mounts and returns a list of AttrDict's
         """
@@ -330,7 +360,8 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
             AttrDict(zip(_mounts_fields, line.split()))
             for line in lines]
 
-    def _smaps(self):
+    @Property
+    def smaps(self):
         """
         Parses /proc/<pid>/smaps and returns a list of AttrDict's
         """
@@ -347,7 +378,8 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         # return [AttrDict(**a, **b) for a, b in zip(maps, self.maps)]
         return [AttrDict(a, **b) for a, b in zip(maps, self.maps)]
 
-    def _stat(self):
+    @Property
+    def stat(self):
         """
         Parses /proc/<pid>/stat and returns an AttrDict
         """
@@ -360,7 +392,8 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         info.comm = info.comm.replace("\n", "\\n")
         return info
 
-    def _statm(self):
+    @Property
+    def statm(self):
         """
         Parses /proc/<pid>/statm and returns an AttrDict
         """
@@ -368,7 +401,8 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
             data = map(int, file.read().split())
         return AttrDict(zip(_statm_fields, data))
 
-    def _status(self):
+    @Property
+    def status(self):
         """
         Parses /proc/<pid>/status and returns an AttrDict
         """
@@ -393,6 +427,5 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         """
         if path in ('cmdline', 'comm', 'environ', 'io', 'limits',
                     'maps', 'mounts', 'smaps', 'stat', 'statm', 'status'):
-            func = getattr(self, "_" + path)
-            return func()
+            return getattr(self, path)
         return super().__missing__(path)
