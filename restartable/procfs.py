@@ -267,7 +267,7 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
 
     def __repr__(self):
         return "%s(pid=%s, proc=%s)" % (
-            type(self).__name__, self._pid, self.proc)
+            type(self).__name__, self.pid, self._proc)
 
     @Property
     def cmdline(self):
