@@ -151,7 +151,7 @@ def main():
                 # Get deleted executable mappings
                 deleted = {
                     _['pathname'][:-len(DELETED)]
-                    for _ in proc.maps
+                    for _ in list(proc.maps)  # NOTE: Use list() to make Pylint happy on Python 3.4
                     if (_['pathname']
                         and 'x' in _['perms']
                         and _['pathname'].endswith(DELETED)
