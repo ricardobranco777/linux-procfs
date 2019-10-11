@@ -38,7 +38,7 @@ class _Mixin:
         """
         Get directory file descriptor
         """
-        self._dir_fd = os.open(path, os.O_RDONLY, dir_fd=dir_fd)
+        self._dir_fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY, dir_fd=dir_fd)
 
 
 class Property:  # pylint: disable=too-few-public-methods

@@ -65,7 +65,7 @@ class FSDict(AttrDict):
         """
         if not path:
             return sorted_alnum(os.listdir(self._dir_fd))
-        dir_fd = os.open(path, os.O_RDONLY, dir_fd=self._dir_fd)
+        dir_fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY, dir_fd=self._dir_fd)
         try:
             listing = os.listdir(dir_fd)
         except OSError as err:
