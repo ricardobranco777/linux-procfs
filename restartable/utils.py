@@ -22,6 +22,22 @@ def sorted_alnum(list_):
     return list_
 
 
+class Property:  # pylint: disable=too-few-public-methods
+    """
+    Simple property class decorator to avoid boilerplate code
+    """
+    def __init__(self, fget=None):
+        self.fget = fget
+        self.name = fget.__name__
+
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            return self
+        if self.name not in obj:
+            obj[self.name] = self.fget(obj)
+        return obj[self.name]
+
+
 # pylint: disable=too-many-ancestors
 
 # As dict is not supposed to be subclassed directly, use UserDict instead

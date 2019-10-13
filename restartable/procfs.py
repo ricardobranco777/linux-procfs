@@ -11,7 +11,7 @@ import os
 import re
 from itertools import zip_longest
 
-from restartable.attrdict import AttrDict, FSDict
+from restartable.utils import AttrDict, FSDict, Property
 
 
 class _Mixin:
@@ -39,22 +39,6 @@ class _Mixin:
         Get directory file descriptor
         """
         self._dir_fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY, dir_fd=dir_fd)
-
-
-class Property:  # pylint: disable=too-few-public-methods
-    """
-    Simple property class decorator to avoid boilerplate code
-    """
-    def __init__(self, fget=None):
-        self.fget = fget
-        self.name = fget.__name__
-
-    def __get__(self, obj, objtype=None):
-        if obj is None:
-            return self
-        if self.name not in obj:
-            obj[self.name] = self.fget(obj)
-        return obj[self.name]
 
 
 class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
