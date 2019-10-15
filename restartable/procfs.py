@@ -98,8 +98,7 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
             break
         if lines is None:
             return None
-        return AttrDict(
-            line.split('=') for line in lines if line.startswith("CONFIG_"))
+        return AttrDict(_.split('=') for _ in lines if _.startswith("CONFIG_"))
 
     @Property
     def cgroups(self):
@@ -107,8 +106,7 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         Parses /proc/cgroup and returns a list of AttrDict's
         """
         with open("cgroups", opener=self._opener) as file:
-            data = file.read()
-        keys, *values = data.splitlines()
+            keys, *values = file.read().splitlines()
         return [AttrDict(zip(keys[1:].split(), _.split())) for _ in values]
 
     @Property
@@ -125,11 +123,11 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         Parses /proc/cpuinfo and returns a list of AttrDict's
         """
         with open("cpuinfo", opener=self._opener) as file:
-            cpus = [file.read()[:-1].split('\n\n')]
+            data = file.read()
         return [
-            AttrDict([map(str.strip, line.split(':'))
-                      for line in cpu.splitlines()])
-            for cpu in cpus]
+            AttrDict([map(str.strip, _.split(':')) for _ in cpu.splitlines()])
+            for cpu in [data[:-1].split('\n\n')]
+        ]
 
     @Property
     def meminfo(self):
@@ -138,7 +136,7 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         """
         with open("meminfo", opener=self._opener) as file:
             lines = file.read().splitlines()
-        return AttrDict([map(str.strip, line.split(':')) for line in lines])
+        return AttrDict([map(str.strip, _.split(':')) for _ in lines])
 
     @Property
     def mounts(self):
@@ -155,8 +153,7 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         Parses /proc/swaps and returns a list of AttrDict's
         """
         with open("swaps", opener=self._opener) as file:
-            data = file.read()
-        keys, *values = data.splitlines()
+            keys, *values = file.read().splitlines()
         return [AttrDict(zip(keys.split(), _.split())) for _ in values]
 
     @Property
@@ -165,16 +162,15 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         Parses /proc/vmstat and returns an AttrDict
         """
         with open("vmstat", opener=self._opener) as file:
-            data = file.read()
-        return AttrDict(line.split() for line in data.splitlines())
+            lines = file.read().splitlines()
+        return AttrDict(_.split() for _ in lines)
 
     def _sysvipc(self, path):
         """
         Parses /proc/sysvipc/{msg,sem,shm} and returns a list of AttrDict's
         """
         with open(os.path.join("sysvipc", path), opener=self._opener) as file:
-            data = file.read()
-        keys, *values = data.splitlines()
+            keys, *values = file.read().splitlines()
         return [AttrDict(zip(keys.split(), _.split())) for _ in values]
 
     def __missing__(self, path):
@@ -191,45 +187,6 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         if path == "sysvipc":
             return FSDict(path=path, dir_fd=self._dir_fd, handler=self._sysvipc)
         return super().__missing__(path)
-
-
-_limits_fields = {
-    'Max cpu time': 'cpu',
-    'Max file size': 'fsize',
-    'Max data size': 'data',
-    'Max stack size': 'stack',
-    'Max core file size': 'core',
-    'Max resident set': 'rss',
-    'Max processes': 'nproc',
-    'Max open files': 'nofile',
-    'Max locked memory': 'memlock',
-    'Max address space': 'as',
-    'Max file locks': 'locks',
-    'Max pending signals': 'sigpending',
-    'Max msgqueue size': 'msgqueue',
-    'Max nice priority': 'nice',
-    'Max realtime priority': 'rtprio',
-    'Max realtime timeout': 'rttime',
-}
-
-_maps_fields = ('address', 'perms', 'offset', 'dev', 'inode', 'pathname')
-
-_mounts_fields = ('fs_spec', 'fs_file', 'fs_vfstype',
-                  'fs_mntops', 'fs_freq', 'fs_passno')
-
-_stat_fields = (
-    'pid comm state ppid pgrp session tty_nr tpgid flags '
-    'minflt cminflt majflt cmajflt utime stime cutime cstime '
-    'priority nice num_threads itrealvalue starttime vsize rss rsslim '
-    'startcode endcode startstack kstkesp kstkeip signal blocked '
-    'sigignore sigcatch wchan nswap cnswap exit_signal processor '
-    'rt_priority policy delayacct_blkio_ticks guest_time cguest_time '
-    'start_data end_data start_brk arg_start arg_end env_start env_end '
-    'exit_code').split()
-
-_statm_fields = ('size', 'resident', 'shared', 'text', 'lib', 'data', 'dt')
-
-_status_XID_fields = ('real', 'effective', 'saved_set', 'filesystem')
 
 
 class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
@@ -302,23 +259,44 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/<pid>/limits and returns an AttrDict
         """
+        fields = {
+            'Max cpu time': 'cpu',
+            'Max file size': 'fsize',
+            'Max data size': 'data',
+            'Max stack size': 'stack',
+            'Max core file size': 'core',
+            'Max resident set': 'rss',
+            'Max processes': 'nproc',
+            'Max open files': 'nofile',
+            'Max locked memory': 'memlock',
+            'Max address space': 'as',
+            'Max file locks': 'locks',
+            'Max pending signals': 'sigpending',
+            'Max msgqueue size': 'msgqueue',
+            'Max nice priority': 'nice',
+            'Max realtime priority': 'rtprio',
+            'Max realtime timeout': 'rttime',
+        }
         with open("limits", opener=self._opener) as file:
-            data = re.findall(
-                r'^(.*?)\s{2,}(\S+)\s{2,}(\S+)', file.read(), re.M)[1:]
+            data = re.findall(r'^(.*?)\s{2,}(\S+)\s{2,}(\S+)', file.read(), re.M)[1:]
         return AttrDict(
-            {_limits_fields[k]: AttrDict(zip(('soft', 'hard'), v))
-             for (k, *v) in data})
+            {
+                fields[k]: AttrDict(zip(('soft', 'hard'), v))
+                for (k, *v) in data
+            })
 
     @Property
     def maps(self):
         """
         Parses /proc/<pid>/maps and returns a list of AttrDict's
         """
+        fields = ('address', 'perms', 'offset', 'dev', 'inode', 'pathname')
         with open("maps", opener=self._opener) as file:
             lines = file.read().splitlines()
         maps = [
-            AttrDict(zip_longest(_maps_fields, line.split(maxsplit=5)))
-            for line in lines]
+            AttrDict(zip_longest(fields, _.split(maxsplit=5)))
+            for _ in lines
+        ]
         # From the proc(5) manpage:
         #  pathname is shown unescaped except for newline characters,
         #  which are replaced with an octal escape sequence. As a result,
@@ -338,11 +316,13 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/<pid>/mounts and returns a list of AttrDict's
         """
+        fields = (
+            'fs_spec', 'fs_file', 'fs_vfstype',
+            'fs_mntops', 'fs_freq', 'fs_passno'
+        )
         with open("mounts", opener=self._opener) as file:
             lines = file.read().splitlines()
-        return [
-            AttrDict(zip(_mounts_fields, line.split()))
-            for line in lines]
+        return [AttrDict(zip(fields, _.split())) for _ in lines]
 
     @Property
     def smaps(self):
@@ -357,7 +337,8 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
                 k: v.strip()
                 for k, v in [_.split(':') for _ in lines[i + 1: i + step]]
             }
-            for i in range(0, len(lines), step)]
+            for i in range(0, len(lines), step)
+        ]
         # USE this instead when support for Python 3.4 is dropped:
         # return [AttrDict(**a, **b) for a, b in zip(maps, self.maps)]
         return [AttrDict(a, **b) for a, b in zip(maps, self.maps)]
@@ -367,9 +348,19 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/<pid>/stat and returns an AttrDict
         """
+        fields = (
+            'pid comm state ppid pgrp session tty_nr tpgid flags '
+            'minflt cminflt majflt cmajflt utime stime cutime cstime '
+            'priority nice num_threads itrealvalue starttime vsize rss rsslim '
+            'startcode endcode startstack kstkesp kstkeip signal blocked '
+            'sigignore sigcatch wchan nswap cnswap exit_signal processor '
+            'rt_priority policy delayacct_blkio_ticks guest_time cguest_time '
+            'start_data end_data start_brk arg_start arg_end env_start env_end '
+            'exit_code'
+        ).split()
         with open("stat", opener=self._opener) as file:
             data = re.findall(r"\(.*\)|\S+", file.read()[:-1], re.M | re.S)
-        info = AttrDict(zip(_stat_fields, data))
+        info = AttrDict(zip(fields, data))
         # Remove parentheses
         info.comm = info.comm[1:-1]
         # Escape newlines
@@ -381,23 +372,22 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         """
         Parses /proc/<pid>/statm and returns an AttrDict
         """
+        fields = ('size', 'resident', 'shared', 'text', 'lib', 'data', 'dt')
         with open("statm", opener=self._opener) as file:
             data = map(int, file.read().split())
-        return AttrDict(zip(_statm_fields, data))
+        return AttrDict(zip(fields, data))
 
     @Property
     def status(self):
         """
         Parses /proc/<pid>/status and returns an AttrDict
         """
+        fields = ('real', 'effective', 'saved_set', 'filesystem')
         with open("status", opener=self._opener) as file:
             lines = file.read().splitlines()
         status = AttrDict([_.split(':\t') for _ in lines])
-        status['Uid'] = AttrDict(
-            zip(_status_XID_fields, map(int, status.Uid.split())))
-        status['Gid'] = AttrDict(
-            zip(_status_XID_fields, map(int, status.Gid.split())))
-        # status['Name'] = status['Name'].replace("\\n", "\n")
+        status['Uid'] = AttrDict(zip(fields, map(int, status.Uid.split())))
+        status['Gid'] = AttrDict(zip(fields, map(int, status.Gid.split())))
         return status
 
     def __getitem__(self, path):
