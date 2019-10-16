@@ -123,10 +123,10 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         Parses /proc/cpuinfo and returns a list of AttrDict's
         """
         with open("cpuinfo", opener=self._opener) as file:
-            data = file.read()
+            cpus = file.read()[:-1].split('\n\n')
         return [
             AttrDict([map(str.strip, _.split(':')) for _ in cpu.splitlines()])
-            for cpu in [data[:-1].split('\n\n')]
+            for cpu in cpus
         ]
 
     @Property
