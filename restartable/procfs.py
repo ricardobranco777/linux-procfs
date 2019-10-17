@@ -41,6 +41,159 @@ class _Mixin:
         self._dir_fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY, dir_fd=dir_fd)
 
 
+class ProcNet(FSDict):  # pylint: disable=too-many-ancestors
+    """
+    Class to parse /proc/self/net
+    """
+    def __init__(self, dir_fd):
+        self._dir_fd = dir_fd
+        super().__init__()
+
+    def __repr__(self):
+        return "%s()" % type(self).__name__
+
+    def _xarp(self, path):
+        """
+        Parse /proc/net/{arp,rarp}
+        """
+        with open(path, opener=self._opener) as file:
+            header, *lines = file.read().splitlines()
+        keys = [_.strip().replace(' ', '_') for _ in header.split('  ') if _]
+        return [AttrDict(zip(keys, _.split())) for _ in lines]
+
+    def _proto(self, path):
+        """
+        Parse /proc/net/{icmp,icmp6,raw,raw6,tcp,tcp6,udp,udp6,udplite,udplite6}
+        """
+        with open(path, opener=self._opener) as file:
+            header, *lines = file.read().splitlines()
+        for old, new in (
+                ('tm->when', 'tm_when'),
+                ('rem_address', 'remote_address')):
+            header = header.replace(old, new)
+        keys = header.split()[1:]  # Ignore "sl"
+        # TO DO: Parse addresses
+        return [AttrDict(zip(keys, _.split()[1:len(keys)])) for _ in lines]
+
+    def _parser1(self, path):
+        with open(path, opener=self._opener) as file:
+            lines = file.read().splitlines()
+        headers, values = lines[::2], lines[1::2]
+        return AttrDict({
+            keys.split()[0][:-1]: AttrDict(zip(keys.split()[1:], map(int, vals.split()[1:])))
+            for keys, vals in zip(headers, values)})
+
+    @Property
+    def arp(self):
+        return self._xarp("net/arp")
+
+    @Property
+    def rarp(self):
+        return self._xarp("net/rarp")
+
+    # TO DO: Dynamically create these properties
+
+    @Property
+    def icmp(self):
+        return self._proto("net/icmp")
+
+    @Property
+    def icmp6(self):
+        return self._proto("net/icmp6")
+
+    @Property
+    def raw(self):
+        return self._proto("net/raw")
+
+    @Property
+    def raw6(self):
+        return self._proto("net/raw6")
+
+    @Property
+    def tcp(self):
+        return self._proto("net/tcp")
+
+    @Property
+    def tcp6(self):
+        return self._proto("net/tcp6")
+
+    @Property
+    def udp(self):
+        return self._proto("net/udp")
+
+    @Property
+    def udp6(self):
+        return self._proto("net/udp6")
+
+    @Property
+    def udplite(self):
+        return self._proto("net/udplite")
+
+    @Property
+    def udplite6(self):
+        return self._proto("net/udplite6")
+
+    @Property
+    def dev(self):
+        with open("net/dev", opener=self._opener) as file:
+            _, line2, *lines = file.read().splitlines()
+        rx, tx = line2.split('|')[1:]
+        keys = ['RX_%s' % _ for _ in rx.split()] + ['TX_%s' % _ for _ in tx.split()]
+        return AttrDict({
+            iface[:-1]: AttrDict(zip(keys, map(int, values)))
+            for _ in lines
+            for iface, *values in [_.split()]})
+
+    @Property
+    def dev_mcast(self):
+        fields = ('index', 'interface', 'dmi_u', 'dmi_g', 'dmi_address')
+        with open("net/dev_mcast", opener=self._opener) as file:
+            lines = file.read().splitlines()
+        return [AttrDict(zip(fields, _.split())) for _ in lines]
+
+    @Property
+    def netstat(self):
+        return self._parser1("net/netstat")
+
+    @Property
+    def snmp(self):
+        return self._parser1("net/snmp")
+
+    @Property
+    def snmp6(self):
+        with open("net/snmp6", opener=self._opener) as file:
+            lines = file.read().splitlines()
+        return AttrDict({
+            k: int(v) for _ in lines
+            for k, v in [_.split()]})
+
+    @Property
+    def route(self):
+        with open("net/route", opener=self._opener) as file:
+            header, *lines = file.read().splitlines()
+        # TO DO: Parse addresses
+        return [AttrDict(zip(header.split(), _.split())) for _ in lines]
+
+    @Property
+    def unix(self):
+        with open("net/unix", opener=self._opener) as file:
+            keys, *lines = file.read().splitlines()
+        # Ignore "Num"
+        return [AttrDict(zip_longest(keys.split()[1:], _.split()[1:])) for _ in lines]
+
+    def __missing__(self, path):
+        """
+        Create dynamic keys for elements in /proc/net
+        """
+        if path in (
+                'arp', 'dev', 'dev_mcast', 'icmp', 'icmp6',
+                'netstat', 'rarp', 'raw', 'raw6', 'route',
+                'snmp', 'snmp6', 'tcp', 'tcp6',
+                'udp', 'udp6', 'udplite', 'udplite6', 'unix'):
+            return getattr(self, path)
+        return super().__missing__(os.path.join("net", path))
+
+
 class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
     """
     Class to parse /proc entries
@@ -175,13 +328,15 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
 
     def __missing__(self, path):
         """
-        Creates dynamic attributes for elements in /proc/
+        Creates dynamic keys for elements in /proc/
         """
         if path in ("config", "cgroups", "cmdline", "cpuinfo",
                     "meminfo", "mounts", "swaps", "vmstat"):
             return getattr(self, path)
         if path == "self":
             return ProcPid(dir_fd=self._dir_fd)
+        if path == "net":
+            return ProcNet(dir_fd=self._dir_fd)
         if path.isdigit():
             return ProcPid(path, dir_fd=self._dir_fd)
         if path == "sysvipc":
@@ -398,9 +553,11 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
 
     def __missing__(self, path):
         """
-        Creates dynamic attributes for elements in /proc/<pid>
+        Creates dynamic keys for elements in /proc/<pid>
         """
         if path in ('cmdline', 'comm', 'environ', 'io', 'limits',
                     'maps', 'mounts', 'smaps', 'stat', 'statm', 'status'):
             return getattr(self, path)
+        if path == "net":
+            return ProcNet(dir_fd=self._dir_fd)
         return super().__missing__(path)
