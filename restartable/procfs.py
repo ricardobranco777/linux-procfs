@@ -196,7 +196,7 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
     def __init__(self, pid=None, proc="/proc", dir_fd=None):
         if pid is None:
             pid = os.getpid()
-        if not isinstance(pid, (int, str)) and int(pid) <= 0:
+        elif int(pid) <= 0:
             raise ValueError("Invalid pid %s" % pid)
         self.pid = str(pid)
         if dir_fd is None:
