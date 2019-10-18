@@ -24,18 +24,24 @@ def sorted_alnum(list_):
 
 class Property:  # pylint: disable=too-few-public-methods
     """
-    Simple property class decorator to avoid boilerplate code
+    Simple cached-property class decorator that works with partialmethod
     """
-    def __init__(self, fget=None):
+    def __init__(self, fget=None, name=None):
         self.fget = fget
-        self.name = fget.__name__
+        self.name = fget.__name__ if name is None else name
 
     def __get__(self, obj, objtype=None):
         if obj is None:
             return self
         if self.name not in obj:
-            obj[self.name] = self.fget(obj)
+            if callable(self.fget):
+                obj[self.name] = self.fget(obj)
+            else:   # partialmethod
+                obj[self.name] = self.fget.func(obj, *self.fget.args, **self.fget.keywords)
         return obj[self.name]
+
+    def __set__(self, obj, value):
+        raise AttributeError
 
 
 # pylint: disable=too-many-ancestors
