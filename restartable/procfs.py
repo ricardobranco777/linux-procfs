@@ -201,9 +201,10 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         self.pid = str(pid)
         if dir_fd is None:
             self._get_dirfd(os.path.join(proc, self.pid))
+            self._proc = proc
         else:
             self._get_dirfd(self.pid, dir_fd=dir_fd)
-        self._proc = proc
+            self._proc = None
         super().__init__()
 
     def __repr__(self):
