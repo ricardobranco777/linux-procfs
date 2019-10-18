@@ -9,6 +9,7 @@ Module with classes to parse /proc entries
 import gzip
 import os
 import re
+from functools import partialmethod
 from itertools import zip_longest
 
 from restartable.utils import AttrDict, FSDict, Property
@@ -45,6 +46,15 @@ class ProcNet(FSDict):  # pylint: disable=too-many-ancestors
     """
     Class to parse /proc/self/net
     """
+    def __new__(cls, *args, **kwargs):
+        for proto in ('arp', 'rarp'):
+            setattr(cls, proto, Property(partialmethod(cls._xarp, "net/%s" % proto), name=proto))
+        for proto in (
+                'icmp', 'icmp6', 'raw', 'raw6', 'tcp', 'tcp6',
+                'udp', 'udp6', 'udplite', 'udplite6'):
+            setattr(cls, proto, Property(partialmethod(cls._proto, "net/%s" % proto), name=proto))
+        return super().__new__(cls, *args, **kwargs)
+
     def __init__(self, dir_fd):
         self._dir_fd = dir_fd
         super().__init__()
@@ -82,56 +92,6 @@ class ProcNet(FSDict):  # pylint: disable=too-many-ancestors
         return AttrDict({
             keys.split()[0][:-1]: AttrDict(zip(keys.split()[1:], map(int, vals.split()[1:])))
             for keys, vals in zip(headers, values)})
-
-    @Property
-    def arp(self):
-        return self._xarp("net/arp")
-
-    @Property
-    def rarp(self):
-        return self._xarp("net/rarp")
-
-    # TO DO: Dynamically create these properties
-
-    @Property
-    def icmp(self):
-        return self._proto("net/icmp")
-
-    @Property
-    def icmp6(self):
-        return self._proto("net/icmp6")
-
-    @Property
-    def raw(self):
-        return self._proto("net/raw")
-
-    @Property
-    def raw6(self):
-        return self._proto("net/raw6")
-
-    @Property
-    def tcp(self):
-        return self._proto("net/tcp")
-
-    @Property
-    def tcp6(self):
-        return self._proto("net/tcp6")
-
-    @Property
-    def udp(self):
-        return self._proto("net/udp")
-
-    @Property
-    def udp6(self):
-        return self._proto("net/udp6")
-
-    @Property
-    def udplite(self):
-        return self._proto("net/udplite")
-
-    @Property
-    def udplite6(self):
-        return self._proto("net/udplite6")
 
     @Property
     def dev(self):
