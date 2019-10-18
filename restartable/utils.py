@@ -7,7 +7,11 @@ Module for AttrDict
 """
 import os
 import stat
-from collections import UserDict
+import sys
+from collections import UserDict, UserString
+from datetime import datetime
+from ipaddress import ip_address
+from socket import htonl
 
 
 def sorted_alnum(list_):
@@ -22,7 +26,7 @@ def sorted_alnum(list_):
     return list_
 
 
-class Property:  # pylint: disable=too-few-public-methods
+class Property:
     """
     Simple cached-property class decorator that works with partialmethod
     """
@@ -44,7 +48,49 @@ class Property:  # pylint: disable=too-few-public-methods
         raise AttributeError
 
 
-# pylint: disable=too-many-ancestors
+class Time(UserString, str):
+    _datetime = None
+
+    @property
+    def datetime(self):
+        if self._datetime is None:
+            self._datetime = datetime.fromtimestamp(int(self.data))
+        return self._datetime
+
+
+class IPAddr(UserString, str):
+    _ip_address = None
+    port = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.data.count(':') == 1:
+            self.data, self.port = self.data.split(':')
+            self.port = int(self.port, base=16)
+
+    @property
+    def ip_address(self):
+        if self._ip_address is None:
+            string = self.data
+            try:
+                self._ip_address = ip_address(string)
+                return self._ip_address
+            except ValueError:
+                pass
+            if sys.byteorder == "big":
+                self._ip_address = ip_address(int(string, base=16))
+            # Little endian
+            else:
+                if len(string) <= 8:
+                    self._ip_address = ip_address(htonl(int(string, base=16)))
+                else:
+                    address = htonl(int(string[:8], base=16)) << 96
+                    address |= htonl(int(string[8:16], base=16)) << 64
+                    address |= htonl(int(string[16:24], base=16)) << 32
+                    address |= htonl(int(string[24:], base=16))
+                    self._ip_address = ip_address(address)
+        return self._ip_address
+
 
 # As dict is not supposed to be subclassed directly, use UserDict instead
 # We use dict as the last class so isinstance(foo, dict) works

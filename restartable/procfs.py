@@ -12,7 +12,7 @@ import re
 from functools import partialmethod
 from itertools import zip_longest
 
-from restartable.utils import AttrDict, FSDict, Property
+from restartable.utils import AttrDict, FSDict, Property, IPAddr, Time
 
 
 class _Mixin:
@@ -42,7 +42,7 @@ class _Mixin:
         self._dir_fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY, dir_fd=dir_fd)
 
 
-class ProcNet(FSDict):  # pylint: disable=too-many-ancestors
+class ProcNet(FSDict):
     """
     Class to parse /proc/self/net
     """
@@ -69,12 +69,16 @@ class ProcNet(FSDict):  # pylint: disable=too-many-ancestors
         with open(path, opener=self._opener) as file:
             header, *lines = file.read().splitlines()
         keys = [_.strip().replace(' ', '_') for _ in header.split('  ') if _]
-        return [AttrDict(zip(keys, _.split())) for _ in lines]
+        entries = [AttrDict(zip(keys, _.split())) for _ in lines]
+        for entry in entries:
+            entry.update({k: IPAddr(entry[k]) for k in ('IP_address',)})
+        return entries
 
     def _proto(self, path):
         """
         Parse /proc/net/{icmp,icmp6,raw,raw6,tcp,tcp6,udp,udp6,udplite,udplite6}
         """
+        # TO DO: Fix port
         with open(path, opener=self._opener) as file:
             header, *lines = file.read().splitlines()
         for old, new in (
@@ -82,8 +86,10 @@ class ProcNet(FSDict):  # pylint: disable=too-many-ancestors
                 ('rem_address', 'remote_address')):
             header = header.replace(old, new)
         keys = header.split()[1:]  # Ignore "sl"
-        # TO DO: Parse addresses
-        return [AttrDict(zip(keys, _.split()[1:len(keys)])) for _ in lines]
+        entries = [AttrDict(zip(keys, _.split()[1:len(keys)])) for _ in lines]
+        for entry in entries:
+            entry.update({k: IPAddr(entry[k]) for k in ('local_address', 'remote_address')})
+        return entries
 
     def _parser1(self, path):
         with open(path, opener=self._opener) as file:
@@ -131,8 +137,10 @@ class ProcNet(FSDict):  # pylint: disable=too-many-ancestors
     def route(self):
         with open("net/route", opener=self._opener) as file:
             header, *lines = file.read().splitlines()
-        # TO DO: Parse addresses
-        return [AttrDict(zip(header.split(), _.split())) for _ in lines]
+        entries = [AttrDict(zip(header.split(), _.split())) for _ in lines]
+        for entry in entries:
+            entry.update({k: IPAddr(entry[k]) for k in ('Destination', 'Gateway', 'Mask')})
+        return entries
 
     @Property
     def unix(self):
@@ -154,7 +162,7 @@ class ProcNet(FSDict):  # pylint: disable=too-many-ancestors
         return super().__missing__(os.path.join("net", path))
 
 
-class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
+class Proc(FSDict, _Mixin):
     """
     Class to parse /proc entries
     """
@@ -284,7 +292,10 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         """
         with open(os.path.join("sysvipc", path), opener=self._opener) as file:
             keys, *values = file.read().splitlines()
-        return [AttrDict(zip(keys.split(), _.split())) for _ in values]
+        entries = [AttrDict(zip(keys.split(), _.split())) for _ in values]
+        for entry in entries:
+            entry.update({k: Time(entry[k]) for k in entry if k.endswith('time')})
+        return entries
 
     def __missing__(self, path):
         """
@@ -304,7 +315,7 @@ class Proc(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         return super().__missing__(path)
 
 
-class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
+class ProcPid(FSDict, _Mixin):
     """
     Class for managing /proc/<pid>/*
     """
@@ -395,11 +406,9 @@ class ProcPid(FSDict, _Mixin):  # pylint: disable=too-many-ancestors
         }
         with open("limits", opener=self._opener) as file:
             data = re.findall(r'^(.*?)\s{2,}(\S+)\s{2,}(\S+)', file.read(), re.M)[1:]
-        return AttrDict(
-            {
-                fields[k]: AttrDict(zip(('soft', 'hard'), v))
-                for (k, *v) in data
-            })
+        return AttrDict({
+            fields[k]: AttrDict(zip(('soft', 'hard'), v))
+            for (k, *v) in data})
 
     @Property
     def maps(self):
