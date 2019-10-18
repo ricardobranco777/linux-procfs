@@ -4,6 +4,7 @@ Setup script
 """
 
 from setuptools import find_packages, setup
+from restartable import __version__
 
 
 def read(path):
@@ -18,7 +19,6 @@ def grep_version():
     """
     Get __version__
     """
-    from restartable import __version__
     return __version__
 
 
