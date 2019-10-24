@@ -380,7 +380,7 @@ class ProcPid(FSDict, _Mixin):
         """
         with open("io", opener=self._opener) as file:
             lines = file.read().splitlines()
-        return AttrDict([_.split(': ') for _ in lines])
+        return AttrDict({k: int(v) for k, v in [_.split(': ') for _ in lines]})
 
     @Property
     def limits(self):
