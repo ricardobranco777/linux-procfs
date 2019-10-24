@@ -331,7 +331,7 @@ class ProcPid(FSDict, _Mixin):
         else:
             self._get_dirfd(self.pid, dir_fd=dir_fd)
             self._proc = None
-        setattr(self, "ctime", Time(int(os.stat(".", dir_fd=self._dir_fd).st_ctime)))
+        setattr(self, "ctime", Time(os.stat(".", dir_fd=self._dir_fd).st_ctime))
         super().__init__()
 
     def __repr__(self):
