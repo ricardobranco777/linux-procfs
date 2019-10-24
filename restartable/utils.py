@@ -7,7 +7,7 @@ Module for AttrDict
 """
 import os
 import stat
-import sys
+import struct
 from collections import UserDict, UserString
 from datetime import datetime
 from ipaddress import ip_address
@@ -77,18 +77,11 @@ class IPAddr(UserString, str):
                 return self._ip_address
             except ValueError:
                 pass
-            if sys.byteorder == "big":
-                self._ip_address = ip_address(int(string, base=16))
-            # Little endian
+            if len(string) == 8:
+                address = htonl(int(string, base=16))
             else:
-                if len(string) <= 8:
-                    self._ip_address = ip_address(htonl(int(string, base=16)))
-                else:
-                    address = htonl(int(string[:8], base=16)) << 96
-                    address |= htonl(int(string[8:16], base=16)) << 64
-                    address |= htonl(int(string[16:24], base=16)) << 32
-                    address |= htonl(int(string[24:], base=16))
-                    self._ip_address = ip_address(address)
+                address = struct.pack('@IIII', *struct.unpack('>IIII', bytes.fromhex(string)))
+            self._ip_address = ip_address(address)
         return self._ip_address
 
 
