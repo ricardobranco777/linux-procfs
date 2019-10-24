@@ -54,7 +54,7 @@ class Time(UserString, str):
     @property
     def datetime(self):
         if self._datetime is None:
-            self._datetime = datetime.fromtimestamp(int(self.data))
+            self._datetime = datetime.fromtimestamp(float(self.data))
         return self._datetime
 
 
