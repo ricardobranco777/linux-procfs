@@ -12,6 +12,7 @@ from collections import UserDict, UserString
 from datetime import datetime
 from ipaddress import ip_address
 from socket import htonl
+from weakref import WeakValueDictionary
 
 
 def sorted_alnum(list_):
@@ -48,6 +49,24 @@ class Property:
         raise AttributeError
 
 
+class Singleton:    # pylint: disable=no-member
+    """
+    Singleton decorator to avoid having multiple objects handling the same args
+    """
+    def __new__(cls, klass):
+        # We must use WeakValueDictionary() to let the instances be garbage-collected
+        _dict = dict(cls.__dict__, **{'cls': klass, 'instances': WeakValueDictionary()})
+        singleton = type("%s_%s" % (cls.__name__, klass.__name__), cls.__bases__, _dict)
+        return super().__new__(singleton)
+
+    def __call__(self, *args, **kwargs):
+        key = (args, frozenset(kwargs.items()))
+        if key not in self.instances:
+            instance = self.cls(*args, **kwargs)
+            self.instances[key] = instance
+        return self.instances[key]
+
+
 class Time(UserString, str):
     _datetime = None
 
@@ -58,6 +77,7 @@ class Time(UserString, str):
         return self._datetime
 
 
+@Singleton
 class IPAddr(UserString, str):
     _ip_address = None
     port = None
