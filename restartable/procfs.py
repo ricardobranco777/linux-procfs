@@ -12,7 +12,7 @@ import re
 from functools import partialmethod
 from itertools import zip_longest
 
-from restartable.utils import AttrDict, FSDict, Property, IPAddr, Time
+from restartable.utils import AttrDict, FSDict, Property, IPAddr, Time, Uid, Gid
 
 
 class _Mixin:
@@ -295,6 +295,8 @@ class Proc(FSDict, _Mixin):
         entries = [AttrDict(zip(keys.split(), _.split())) for _ in values]
         for entry in entries:
             entry.update({k: Time(entry[k]) for k in entry if k.endswith('time')})
+            entry.update({k: Uid(entry[k]) for k in ('uid', 'cuid')})
+            entry.update({k: Gid(entry[k]) for k in ('gid', 'cgid')})
         return entries
 
     def __missing__(self, path):
@@ -512,8 +514,8 @@ class ProcPid(FSDict, _Mixin):
         with open("status", opener=self._opener) as file:
             lines = file.read().splitlines()
         status = AttrDict([_.split(':\t') for _ in lines])
-        status['Uid'] = AttrDict(zip(fields, map(int, status.Uid.split())))
-        status['Gid'] = AttrDict(zip(fields, map(int, status.Gid.split())))
+        status['Uid'] = AttrDict(zip(fields, map(Uid, status.Uid.split())))
+        status['Gid'] = AttrDict(zip(fields, map(Gid, status.Gid.split())))
         return status
 
     def __getitem__(self, path):

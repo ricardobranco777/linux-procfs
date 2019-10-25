@@ -8,7 +8,6 @@ list restartable programs or services using deleted libraries
 """
 
 import os
-import pwd
 import re
 import sys
 from argparse import ArgumentParser
@@ -105,7 +104,7 @@ def print_info(proc, deleted):
     else:
         uid = proc.status.Uid.real
         try:
-            username = pwd.getpwuid(uid).pw_name
+            username = uid.name
         except KeyError:
             username = uid
         cmdline = guess_command(proc)
