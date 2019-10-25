@@ -514,8 +514,9 @@ class ProcPid(FSDict, _Mixin):
         with open("status", opener=self._opener) as file:
             lines = file.read().splitlines()
         status = AttrDict([_.split(':\t') for _ in lines])
-        status['Uid'] = AttrDict(zip(fields, map(Uid, status.Uid.split())))
-        status['Gid'] = AttrDict(zip(fields, map(Gid, status.Gid.split())))
+        status.Uid = AttrDict(zip(fields, map(Uid, status.Uid.split())))
+        status.Gid = AttrDict(zip(fields, map(Gid, status.Gid.split())))
+        status.Groups = list(map(Gid, status['Groups'].split()))
         return status
 
     def __getitem__(self, path):
