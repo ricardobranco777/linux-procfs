@@ -13,6 +13,8 @@ from datetime import datetime
 from ipaddress import ip_address
 from socket import htonl
 from weakref import WeakValueDictionary
+from pwd import getpwuid
+from grp import getgrgid
 
 
 def sorted_alnum(list_):
@@ -67,9 +69,38 @@ class Singleton:    # pylint: disable=no-member
         return self.instances[key]
 
 
-class Time(UserString, str):
-    _datetime = None
+@Singleton
+class Uid(UserString, str):
+    """
+    Class to hold user ID's
+    """
+    _name = None
+    @property
+    def name(self):
+        if self._name is None:
+            self._name = getpwuid(int(self.data)).pw_name
+        return self._name
 
+
+@Singleton
+class Gid(UserString, str):
+    """
+    Class to hold user ID's
+    """
+    _name = None
+    @property
+    def name(self):
+        if self._name is None:
+            self._name = getgrgid(int(self.data)).gr_name
+        return self._name
+
+
+@Singleton
+class Time(UserString, str):
+    """
+    Class for time objects
+    """
+    _datetime = None
     @property
     def datetime(self):
         if self._datetime is None:
@@ -79,6 +110,9 @@ class Time(UserString, str):
 
 @Singleton
 class IPAddr(UserString, str):
+    """
+    Class for IP address objects
+    """
     _ip_address = None
     port = None
 
