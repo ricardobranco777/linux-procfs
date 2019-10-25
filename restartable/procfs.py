@@ -78,17 +78,17 @@ class ProcNet(FSDict):
         """
         Parse /proc/net/{icmp,icmp6,raw,raw6,tcp,tcp6,udp,udp6,udplite,udplite6}
         """
-        # TO DO: Fix port
+        fields = (
+            'local_address', 'local_port', 'remote_address', 'remote_port',
+            'st', 'tx_queue', 'rx_queue', 'tr', 'tm_when', 'retrnsmt', 'uid',
+            'timeout', 'inode', 'ref', 'pointer', 'drops')
         with open(path, opener=self._opener) as file:
-            header, *lines = file.read().splitlines()
-        for old, new in (
-                ('tm->when', 'tm_when'),
-                ('rem_address', 'remote_address')):
-            header = header.replace(old, new)
-        keys = header.split()[1:]  # Ignore "sl"
-        entries = [AttrDict(zip(keys, _.split()[1:len(keys)])) for _ in lines]
+            _, *lines = file.read().splitlines()
+        entries = [AttrDict(zip(fields, _.replace(':', ' ').split()[1:])) for _ in lines]
         for entry in entries:
             entry.update({k: IPAddr(entry[k]) for k in ('local_address', 'remote_address')})
+            entry.update({k: int(entry[k], base=16) for k in ('local_port', 'remote_port')})
+            entry.update({'uid': Uid(entry['uid'])})
         return entries
 
     def _parser1(self, path):
