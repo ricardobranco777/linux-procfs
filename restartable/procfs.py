@@ -92,6 +92,9 @@ class ProcNet(FSDict):
         return entries
 
     def _parser1(self, path):
+        """
+        Parse /proc/net/{netstat,route}
+        """
         with open(path, opener=self._opener) as file:
             lines = file.read().splitlines()
         headers, values = lines[::2], lines[1::2]
@@ -101,6 +104,9 @@ class ProcNet(FSDict):
 
     @Property
     def dev(self):
+        """
+        Parse /proc/net/dev
+        """
         with open("net/dev", opener=self._opener) as file:
             _, line2, *lines = file.read().splitlines()
         rx, tx = line2.split('|')[1:]
@@ -112,6 +118,9 @@ class ProcNet(FSDict):
 
     @Property
     def dev_mcast(self):
+        """
+        Parse /proc/net/dev_mcast
+        """
         fields = ('index', 'interface', 'dmi_u', 'dmi_g', 'dmi_address')
         with open("net/dev_mcast", opener=self._opener) as file:
             lines = file.read().splitlines()
@@ -119,14 +128,23 @@ class ProcNet(FSDict):
 
     @Property
     def netstat(self):
+        """
+        Parse /proc/net/netstat
+        """
         return self._parser1("net/netstat")
 
     @Property
     def snmp(self):
+        """
+        Parse /proc/net/snmp
+        """
         return self._parser1("net/snmp")
 
     @Property
     def snmp6(self):
+        """
+        Parse /proc/net/snmp6
+        """
         with open("net/snmp6", opener=self._opener) as file:
             lines = file.read().splitlines()
         return AttrDict({
@@ -135,6 +153,9 @@ class ProcNet(FSDict):
 
     @Property
     def route(self):
+        """
+        Parse /proc/net/route
+        """
         with open("net/route", opener=self._opener) as file:
             header, *lines = file.read().splitlines()
         entries = [AttrDict(zip(header.split(), _.split())) for _ in lines]
@@ -144,6 +165,9 @@ class ProcNet(FSDict):
 
     @Property
     def unix(self):
+        """
+        Parse /proc/net/unix
+        """
         with open("net/unix", opener=self._opener) as file:
             keys, *lines = file.read().splitlines()
         # Ignore "Num"

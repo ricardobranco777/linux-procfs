@@ -77,6 +77,9 @@ class Uid(UserString, str):
     _name = None
     @property
     def name(self):
+        """
+        Convert a User ID string to a user name
+        """
         if self._name is None:
             self._name = getpwuid(int(self.data)).pw_name
         return self._name
@@ -90,6 +93,9 @@ class Gid(UserString, str):
     _name = None
     @property
     def name(self):
+        """
+        Convert a Group ID string to a group name
+        """
         if self._name is None:
             self._name = getgrgid(int(self.data)).gr_name
         return self._name
@@ -103,6 +109,9 @@ class Time(UserString, str):
     _datetime = None
     @property
     def datetime(self):
+        """
+        Convert a time string to a datetime object
+        """
         if self._datetime is None:
             self._datetime = datetime.fromtimestamp(float(self.data))
         return self._datetime
@@ -116,6 +125,9 @@ class IPAddr(UserString, str):
     _ip_address = None
     @property
     def ip_address(self):
+        """
+        Convert a IPv4/6 string to a ip_address object
+        """
         if self._ip_address is None:
             string = self.data
             try:
@@ -147,6 +159,10 @@ class AttrDict(UserDict, dict):
 
 
 class FSDict(AttrDict):
+    """
+    Class for capturing a directory structure into a dictionary
+    """
+
     def __init__(self, path="", dir_fd=None, handler=None):
         if dir_fd is not None:
             self._dir_fd = dir_fd
