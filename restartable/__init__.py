@@ -1,3 +1,3 @@
 __author__ = """Ricardo Branco"""
 __email__ = 'rbranco@suse.de'
-__version__ = "0.7.6"
+__version__ = "0.7.7"
