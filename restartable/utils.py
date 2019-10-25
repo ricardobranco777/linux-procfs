@@ -114,14 +114,6 @@ class IPAddr(UserString, str):
     Class for IP address objects
     """
     _ip_address = None
-    port = None
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.data.count(':') == 1:
-            self.data, self.port = self.data.split(':')
-            self.port = int(self.port, base=16)
-
     @property
     def ip_address(self):
         if self._ip_address is None:
