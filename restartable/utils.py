@@ -152,7 +152,10 @@ class AttrDict(UserDict, dict):
     def __getattr__(self, attr):
         if attr.startswith('__') and attr.endswith('__'):
             raise AttributeError    # Make help() work
-        return self.__getitem__(attr)
+        try:
+            return self.__getitem__(attr)
+        except KeyError as e:
+            raise AttributeError(e)
 
     def __delattr__(self, attr):
         self.__delitem__(attr)
@@ -162,6 +165,9 @@ class FSDict(AttrDict):
     """
     Class for capturing a directory structure into a dictionary
     """
+    _dir_fd = None
+    _path = None
+    _handler = None
 
     def __init__(self, path="", dir_fd=None, handler=None):
         if dir_fd is not None:
