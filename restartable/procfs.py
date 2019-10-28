@@ -93,7 +93,7 @@ class ProcNet(FSDict):
 
     def _parser1(self, path):
         """
-        Parse /proc/net/{netstat,route}
+        Parse /proc/net/{netstat,snmp}
         """
         with open(path, opener=self._opener) as file:
             lines = file.read().splitlines()
