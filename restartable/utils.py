@@ -58,13 +58,16 @@ class Singleton:    # pylint: disable=no-member
     def __new__(cls, klass):
         # We must use WeakValueDictionary() to let the instances be garbage-collected
         _dict = dict(cls.__dict__, **{'cls': klass, 'instances': WeakValueDictionary()})
-        singleton = type("%s_%s" % (cls.__name__, klass.__name__), cls.__bases__, _dict)
+        singleton = type(klass.__name__, cls.__bases__, _dict)
         return super().__new__(singleton)
+
+    def __instancecheck__(self, other):
+        return isinstance(other, self.cls)
 
     def __call__(self, *args, **kwargs):
         key = (args, frozenset(kwargs.items()))
         if key not in self.instances:
-            instance = self.cls(*args, **kwargs)
+            instance = self.cls.__call__(*args, **kwargs)
             self.instances[key] = instance
         return self.instances[key]
 

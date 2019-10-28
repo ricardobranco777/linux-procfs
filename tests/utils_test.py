@@ -20,6 +20,7 @@ class Test_utils(unittest.TestCase):
     def test_AttrDict(self):
         d = AttrDict({'a': 1})
         self.assertIsInstance(d, dict)
+        self.assertIsInstance(d, AttrDict)
         self.assertEqual(d.a, d['a'])
         del d.a
         self.assertEqual(d, {})
@@ -43,24 +44,28 @@ class Test_utils(unittest.TestCase):
         ipv4 = IPAddr(ipv4)
         ipv6 = IPAddr(ipv6)
         self.assertIsInstance(ipv4, str)
+        self.assertIsInstance(ipv4, IPAddr)
         self.assertEqual(ipv4.ip_address.compressed, '127.0.0.1')
         self.assertEqual(ipv6.ip_address.compressed, '::1')
 
     def test_Time(self):
         t = Time('0')
         self.assertIsInstance(t, str)
+        self.assertIsInstance(t, Time)
         self.assertEqual(t.datetime.ctime(), 'Thu Jan  1 00:00:00 1970')
 
     @patch('restartable.utils.getpwuid', return_value=namedtuple('_', 'pw_name')('abc'))
     def test_Uid(self, *_):
         uid = Uid(777)
         self.assertIsInstance(uid, str)
+        self.assertIsInstance(uid, Uid)
         self.assertEqual(uid.name, 'abc')
 
     @patch('restartable.utils.getgrgid', return_value=namedtuple('_', 'gr_name')('xyz'))
     def test_Gid(self, *_):
         gid = Gid(888)
         self.assertIsInstance(gid, str)
+        self.assertIsInstance(gid, Gid)
         self.assertEqual(gid.name, 'xyz')
 
     @patch('os.readlink', return_value='file')
@@ -76,6 +81,7 @@ class Test_utils(unittest.TestCase):
             return namedtuple('_', 'st_mode')(stat.S_IFREG)
         with patch('os.lstat', mock_lstat):
             fs = FSDict()
+            self.assertIsInstance(fs, FSDict)
             self.assertEqual(fs.file, "data")
             self.assertEqual(fs.symlink, "file")
             self.assertIsInstance(fs.dir, FSDict)
@@ -93,6 +99,7 @@ class Test_utils(unittest.TestCase):
                 pass
 
         a = A(1)
+        self.assertIsInstance(a, A)
         a_ = A(1)
         a2 = A(2)
         b = B(1)
@@ -121,6 +128,7 @@ class Test_utils(unittest.TestCase):
                 return -self.a
 
         a = A()
+        self.assertIsInstance(a, A)
         self.assertEqual(a.a, 777)
         self.assertEqual(a.b, a['b'])
         self.assertEqual(a.b, -777)
