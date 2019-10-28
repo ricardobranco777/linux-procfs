@@ -392,11 +392,11 @@ class ProcPid(FSDict, _Mixin):
         """
         Parses /proc/<pid>/environ and returns an AttrDict
         """
-        with open("environ", opener=self._opener) as file:
+        with open("environ", "rb", opener=self._opener) as file:
             data = file.read()
         try:
-            return AttrDict([_.split('=', 1) for _ in data[:-1].split('\0')])
-        except ValueError:
+            return AttrDict([_.split('=', 1) for _ in data.decode('utf-8')[:-1].split('\0')])
+        except (UnicodeDecodeError, ValueError):
             return data
 
     @Property
@@ -432,9 +432,12 @@ class ProcPid(FSDict, _Mixin):
             'Max realtime timeout': 'rttime',
         }
         with open("limits", opener=self._opener) as file:
-            data = re.findall(r'^(.*?)\s{2,}(\S+)\s{2,}(\S+)', file.read(), re.M)[1:]
+            data = re.findall(
+                r'^(.*?)\s{2,}(\S+)\s{2,}(\S+)',
+                file.read().replace('unlimited', '-1'),
+                re.MULTILINE)[1:]
         return AttrDict({
-            fields[k]: AttrDict(zip(('soft', 'hard'), v))
+            fields[k]: AttrDict(zip(('soft', 'hard'), map(int, v)))
             for (k, *v) in data})
 
     @Property
