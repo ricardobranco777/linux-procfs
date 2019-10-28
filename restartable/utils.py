@@ -5,6 +5,7 @@
 """
 Module for AttrDict
 """
+import json
 import os
 import stat
 import struct
@@ -73,7 +74,7 @@ class Singleton:    # pylint: disable=no-member
 
 
 @Singleton
-class Uid(UserString, str):
+class Uid(UserString):
     """
     Class to hold user ID's
     """
@@ -89,7 +90,7 @@ class Uid(UserString, str):
 
 
 @Singleton
-class Gid(UserString, str):
+class Gid(UserString):
     """
     Class to hold user ID's
     """
@@ -105,7 +106,7 @@ class Gid(UserString, str):
 
 
 @Singleton
-class Time(UserString, str):
+class Time(UserString):
     """
     Class for time objects
     """
@@ -121,7 +122,7 @@ class Time(UserString, str):
 
 
 @Singleton
-class IPAddr(UserString, str):
+class IPAddr(UserString):
     """
     Class for IP address objects
     """
@@ -146,9 +147,7 @@ class IPAddr(UserString, str):
         return self._ip_address
 
 
-# As dict is not supposed to be subclassed directly, use UserDict instead
-# We use dict as the last class so isinstance(foo, dict) works
-class AttrDict(UserDict, dict):
+class AttrDict(UserDict):
     """
     Class for accessing dictionary keys with attributes
     """
@@ -222,3 +221,20 @@ class FSDict(AttrDict):
         if stat.S_ISDIR(mode):
             return FSDict(path=path, dir_fd=self._dir_fd)
         return None
+
+
+class CustomJSONEncoder(json.JSONEncoder):
+    """
+    JSON Encoder for the objects defined here
+    Use like this: json.dumps(obj, cls=CustomJSONEncoder)
+    """
+    def default(self, obj):     # pylint: disable=method-hidden,arguments-differ
+        if isinstance(obj, IPAddr):
+            return obj.ip_address.compressed
+        if isinstance(obj, (Uid, Gid)):
+            return int(obj.data)
+        if isinstance(obj, Time):
+            return obj.datetime.ctime()
+        if isinstance(obj, AttrDict):
+            return obj.data
+        return json.JSONEncoder.default(self, obj)

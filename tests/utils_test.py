@@ -1,12 +1,13 @@
 import unittest
 import gc
+import json
 import stat
 import sys
 from collections import namedtuple
 from functools import partialmethod
 from mock import patch, mock_open
 
-from restartable.utils import sorted_alnum
+from restartable.utils import sorted_alnum, CustomJSONEncoder
 from restartable.utils import AttrDict, Property, Singleton, IPAddr, Time, Uid, Gid, FSDict
 
 
@@ -19,7 +20,6 @@ class Test_utils(unittest.TestCase):
 
     def test_AttrDict(self):
         d = AttrDict({'a': 1})
-        self.assertIsInstance(d, dict)
         self.assertIsInstance(d, AttrDict)
         self.assertEqual(d.a, d['a'])
         del d.a
@@ -43,28 +43,24 @@ class Test_utils(unittest.TestCase):
             ipv6 = '00000000000000000000000001000000'
         ipv4 = IPAddr(ipv4)
         ipv6 = IPAddr(ipv6)
-        self.assertIsInstance(ipv4, str)
         self.assertIsInstance(ipv4, IPAddr)
         self.assertEqual(ipv4.ip_address.compressed, '127.0.0.1')
         self.assertEqual(ipv6.ip_address.compressed, '::1')
 
     def test_Time(self):
         t = Time('0')
-        self.assertIsInstance(t, str)
         self.assertIsInstance(t, Time)
         self.assertEqual(t.datetime.ctime(), 'Thu Jan  1 00:00:00 1970')
 
     @patch('restartable.utils.getpwuid', return_value=namedtuple('_', 'pw_name')('abc'))
     def test_Uid(self, *_):
         uid = Uid(777)
-        self.assertIsInstance(uid, str)
         self.assertIsInstance(uid, Uid)
         self.assertEqual(uid.name, 'abc')
 
     @patch('restartable.utils.getgrgid', return_value=namedtuple('_', 'gr_name')('xyz'))
     def test_Gid(self, *_):
         gid = Gid(888)
-        self.assertIsInstance(gid, str)
         self.assertIsInstance(gid, Gid)
         self.assertEqual(gid.name, 'xyz')
 
@@ -132,6 +128,11 @@ class Test_utils(unittest.TestCase):
         self.assertEqual(a.a, 777)
         self.assertEqual(a.b, a['b'])
         self.assertEqual(a.b, -777)
+
+    def test_CustomJSONEncoder(self):
+        d = AttrDict({'time': Time(0), 'uid': Uid(0), 'gid': Gid(0), 'ip': IPAddr('00000000')})
+        s = '{"gid": 0, "ip": "0.0.0.0", "time": "Thu Jan  1 00:00:00 1970", "uid": 0}'
+        self.assertEqual(s, json.dumps(d, cls=CustomJSONEncoder, sort_keys=True))
 
 
 if __name__ == '__main__':
