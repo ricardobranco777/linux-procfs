@@ -248,11 +248,14 @@ class Proc(FSDict, _Mixin):
     @Property
     def cgroups(self):
         """
-        Parses /proc/cgroup and returns a list of AttrDict's
+        Parses /proc/cgroup and returns an AttrDict
         """
         with open("cgroups", opener=self._opener) as file:
-            keys, *values = file.read().splitlines()
-        return [AttrDict(zip(keys[1:].split(), _.split())) for _ in values]
+            header, *lines = file.read().splitlines()
+        keys = header.split()[1:]
+        return AttrDict({
+            k: AttrDict(zip(keys, map(int, values))) for _ in lines
+            for k, *values in [_.split()]})
 
     @Property
     def cmdline(self):
