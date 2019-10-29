@@ -1,14 +1,14 @@
 import os
 import unittest
+from unittest.mock import patch, mock_open
 from collections import namedtuple
 from resource import getrlimit, RLIMIT_STACK
-from mock import patch, mock_open
 
 from restartable.procfs import Proc, ProcNet, ProcPid
-from restartable.utils import AttrDict, IPAddr, Uid, Gid, Time
+from restartable.utils import AttrDict, FSDict, IPAddr, Uid, Gid, Time
 
 
-# pylint: disable=no-member,unsubscriptable-object,unsupported-delete-operation
+# pylint: disable=no-member,unsubscriptable-object,unsupported-delete-operation,no-self-use,line-too-long
 
 
 class Test_ProcNet(unittest.TestCase):
@@ -273,3 +273,125 @@ class Test_ProcPid(unittest.TestCase):
             self.assertIsInstance(p.task, list)
             self.assertEqual(p.task, p['task'])
             assert p.pid in p.task
+
+    def test_personality(self):
+        with ProcPid() as p:
+            self.assertEqual(p.personality, p['personality'])
+            del p.personality
+            self.assertEqual(p.personality, p['personality'])
+            del p['personality']
+            self.assertEqual(p.data, {})
+            self.assertIsInstance(int(p.personality, base=16), int)
+
+
+class Test_Proc(unittest.TestCase):
+    def test_Proc(self):
+        with Proc() as p, ProcPid() as p_:
+            self.assertIsInstance(p, Proc)
+            self.assertEqual(p.self.pid, p_.pid)
+
+    def test_pids(self):
+        with Proc() as p:
+            assert str(os.getpid()) in p.pids()
+
+    def test_tasks(self):
+        with Proc() as p:
+            assert str(os.getpid()) in p.tasks()
+
+    @patch('builtins.open', mock_open(read_data="#subsys_name\thierarchy\tnum_cgroups\tenabled\ncpuset\t8\t4\t1\n"))
+    def test_cgroups(self, *_):
+        with Proc() as p:
+            self.assertIsInstance(p.cgroups, AttrDict)
+            self.assertEqual(p.cgroups, p['cgroups'])
+            del p.cgroups
+            self.assertEqual(p.cgroups, p['cgroups'])
+            del p['cgroups']
+            self.assertEqual(p.data, {})
+            self.assertEqual(p.cgroups.cpuset.hierarchy, p['cgroups']['cpuset']['hierarchy'])
+            self.assertEqual(p.cgroups.cpuset['hierarchy'], 8)
+            self.assertEqual(p.cgroups.cpuset.enabled, 1)
+
+    @patch('builtins.open', mock_open(read_data="processor\t: 0\nvendor_id\t: GenuineXYZ\n\nprocessor\t: 1\nvendor_id\t: GenuineXYZ\n\n"))
+    def test_cpuinfo(self, *_):
+        with Proc() as p:
+            self.assertIsInstance(p.cpuinfo, list)
+            self.assertEqual(p.cpuinfo, p['cpuinfo'])
+            del p.cpuinfo
+            self.assertEqual(p.cpuinfo, p['cpuinfo'])
+            del p['cpuinfo']
+            self.assertEqual(p.data, {})
+            self.assertEqual(p.cpuinfo[0].vendor_id, p.cpuinfo[0]['vendor_id'])
+            self.assertEqual(p.cpuinfo[1].vendor_id, "GenuineXYZ")
+
+    @patch('builtins.open', mock_open(read_data="MemTotal:       32727212 kB\nMemFree:        24443188 kB\n"))
+    def test_meminfo(self, *_):
+        with Proc() as p:
+            self.assertIsInstance(p.meminfo, AttrDict)
+            self.assertEqual(p.meminfo, p['meminfo'])
+            del p.meminfo
+            self.assertEqual(p.meminfo, p['meminfo'])
+            del p['meminfo']
+            self.assertEqual(p.data, {})
+            self.assertEqual(p.meminfo.MemTotal, p['meminfo']['MemTotal'])
+            self.assertEqual(p.meminfo['MemFree'], 24443188)
+
+    def test_mounts(self, *_):
+        with Proc() as p, ProcPid() as p_:
+            self.assertEqual(p.mounts, p_.mounts)
+            self.assertEqual(p.mounts, p['mounts'])
+            del p.mounts
+            self.assertEqual(p.mounts, p['mounts'])
+            del p['mounts']
+            self.assertEqual(p.data, {})
+
+    @patch('builtins.open', mock_open(read_data="Filename\t\t\t\tType\t\tSize\tUsed\tPriority\n/dev/dm-1\t\t\t\tpartition\t\t32792572\t0\t-2"))
+    def test_swaps(self, *_):
+        with Proc() as p:
+            self.assertIsInstance(p.swaps, list)
+            self.assertIsInstance(p.swaps[0], AttrDict)
+            self.assertEqual(p.swaps, p['swaps'])
+            del p.swaps
+            self.assertEqual(p.swaps, p['swaps'])
+            del p['swaps']
+            self.assertEqual(p.data, {})
+            self.assertEqual(p.swaps[0].Filename, p['swaps'][0]['Filename'])
+            self.assertEqual(p.swaps[0]['Filename'], "/dev/dm-1")
+
+    @patch('builtins.open', mock_open(read_data="nr_free_pages 6097475\nnr_zone_inactive_anon 53530"))
+    def test_vmstat(self, *_):
+        with Proc() as p:
+            self.assertIsInstance(p.vmstat, AttrDict)
+            self.assertEqual(p.vmstat, p['vmstat'])
+            del p.vmstat
+            self.assertEqual(p.vmstat, p['vmstat'])
+            del p['vmstat']
+            self.assertEqual(p.data, {})
+            self.assertEqual(p.vmstat.nr_free_pages, p['vmstat']['nr_free_pages'])
+            self.assertEqual(p.vmstat['nr_zone_inactive_anon'], 53530)
+
+    def test_sysvipc(self):
+        with Proc() as p:
+            self.assertIsInstance(p.sysvipc, FSDict)
+            self.assertEqual(p.sysvipc, p['sysvipc'])
+            self.assertEqual(p.sysvipc.shm, p['sysvipc']['shm'])
+            del p.sysvipc
+            self.assertEqual(p.sysvipc, p['sysvipc'])
+            self.assertEqual(p.sysvipc.sem, p['sysvipc']['sem'])
+            del p['sysvipc']
+            self.assertEqual(p.data, {})
+            assert p.sysvipc.shm
+            for key in ('uid', 'cuid'):
+                self.assertIsInstance(p.sysvipc.shm[0][key], Uid)
+            for key in ('gid', 'cgid'):
+                self.assertIsInstance(p.sysvipc.shm[0][key], Gid)
+            for key in [_ for _ in p.sysvipc.shm[0].keys() if _.endswith("time")]:
+                self.assertIsInstance(p.sysvipc.shm[0][key], Time)
+
+    def test_version(self):
+        with Proc() as p:
+            self.assertEqual(p.version, p['version'])
+            del p.version
+            self.assertEqual(p.version, p['version'])
+            del p['version']
+            self.assertEqual(p.data, {})
+            assert p.version.startswith("Linux")

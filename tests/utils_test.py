@@ -1,11 +1,11 @@
 import unittest
+from unittest.mock import patch, mock_open
 import gc
 import json
 import stat
 import sys
 from collections import namedtuple
 from functools import partialmethod
-from mock import patch, mock_open
 
 from restartable.utils import sorted_alnum, CustomJSONEncoder
 from restartable.utils import AttrDict, Property, Singleton, IPAddr, Time, Uid, Gid, FSDict
