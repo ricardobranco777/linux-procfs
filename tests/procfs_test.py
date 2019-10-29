@@ -72,6 +72,19 @@ class Test_ProcNet(unittest.TestCase):
             self.assertEqual(net.data, {})
             self.assertEqual(net.dev['lo'].RX_bytes, 10393238)
 
+    @patch('builtins.open', mock_open(read_data="6    eth0  1     0     01005e00006a\n"))
+    def test_dev_mcast(self):
+        with Proc() as p:
+            net = p.net
+            self.assertEqual(net.dev_mcast, net['dev_mcast'])
+            del net.dev_mcast
+            self.assertIsInstance(net.dev_mcast, list)
+            self.assertEqual(net.dev_mcast, net['dev_mcast'])
+            del net['dev_mcast']
+            self.assertEqual(net.data, {})
+            self.assertEqual(net.dev_mcast[0].interface, net['dev_mcast'][0]['interface'])
+            self.assertEqual(net.dev_mcast[0]['interface'], "eth0")
+
     @patch('builtins.open', mock_open(read_data="TcpExt: SyncookiesSent SyncookiesRecv\nTcpExt: 1 2\nIpExt: InNoRoutes InTruncatedPkts\nIpExt: 3 4\n"))
     def test_netstat(self):
         with Proc() as p:
@@ -101,6 +114,19 @@ class Test_ProcNet(unittest.TestCase):
             self.assertEqual(net.data, {})
             self.assertEqual(net.snmp['Ip'].Forwarding, 1)
             self.assertEqual(net.snmp['Icmp'].InErrors, 0)
+
+    @patch('builtins.open', mock_open(read_data="Ip6InReceives                   	579556\nIp6InHdrErrors                  	0\n"))
+    def test_snmp6(self):
+        with Proc() as p:
+            net = p.net
+            self.assertEqual(net.snmp6, net['snmp6'])
+            del net.snmp6
+            self.assertIsInstance(net.snmp6, AttrDict)
+            self.assertEqual(net.snmp6, net['snmp6'])
+            self.assertEqual(net.snmp6.Ip6InReceives, net['snmp6']['Ip6InReceives'])
+            del net['snmp6']
+            self.assertEqual(net.data, {})
+            self.assertEqual(net.snmp6.Ip6InHdrErrors, 0)
 
     @patch('builtins.open', mock_open(read_data="""Iface	Destination	Gateway 	Flags	RefCnt	Use	Metric	Mask		MTU	Window	IRTT
 enp61s0u1u2	00000000	00000000	0003	0	0	100	00000000	0	0	0"""))
@@ -151,7 +177,7 @@ class Test_ProcPid(unittest.TestCase):
             self.assertEqual(p.ctime, 'Thu Jan  1 00:00:00 1970')
 
     @patch('builtins.open', mock_open(read_data="a\nb\0c\0"))
-    def test_cmdline(self, *_):
+    def test_cmdline(self):
         with ProcPid() as p:
             self.assertIsInstance(p.cmdline, list)
             self.assertEqual(p.cmdline, ["a\\nb", "c"])
@@ -162,7 +188,7 @@ class Test_ProcPid(unittest.TestCase):
             self.assertEqual(p.data, {})
 
     @patch('builtins.open', mock_open(read_data="ab\n"))
-    def test_comm(self, *_):
+    def test_comm(self):
         with ProcPid() as p:
             self.assertIsInstance(p.comm, str)
             self.assertEqual(p.comm, "ab")
@@ -172,7 +198,7 @@ class Test_ProcPid(unittest.TestCase):
             del p['comm']
             self.assertEqual(p.data, {})
 
-    def test_environ1(self, *_):
+    def test_environ1(self):
         with ProcPid() as p:
             self.assertIsInstance(p.environ, AttrDict)
             self.assertEqual(p.environ, os.environ)
@@ -183,13 +209,13 @@ class Test_ProcPid(unittest.TestCase):
             self.assertEqual(p.data, {})
 
     @patch('builtins.open', mock_open(read_data=b'\xff\x00'))
-    def test_environ2(self, *_):
+    def test_environ2(self):
         with ProcPid() as p:
             self.assertIsInstance(p.environ, bytes)
             self.assertEqual(p.environ, b'\xff\x00')
 
     @patch('builtins.open', mock_open(read_data="a: 1\nb: 2\n"))
-    def test_io(self, *_):
+    def test_io(self):
         with ProcPid() as p:
             self.assertIsInstance(p.io, AttrDict)
             self.assertEqual(p.io, {'a': 1, 'b': 2})
@@ -221,7 +247,7 @@ class Test_ProcPid(unittest.TestCase):
             self.assertEqual(p.data, {})
 
     @patch('builtins.open', mock_open(read_data="tmpfs /dev/shm tmpfs rw,nosuid,nodev 0 0\n"))
-    def test_mounts(self, *_):
+    def test_mounts(self):
         with ProcPid() as p:
             self.assertIsInstance(p.mounts[0], AttrDict)
             self.assertEqual(p.mounts[0].fs_spec, "tmpfs")
@@ -237,7 +263,7 @@ class Test_ProcPid(unittest.TestCase):
             self.assertEqual(p.data, {})
 
     @patch('builtins.open', mock_open(read_data="777 ( a \n b ) S" + " 1" * 49))
-    def test_stat(self, *_):
+    def test_stat(self):
         with ProcPid() as p:
             self.assertIsInstance(p.stat, AttrDict)
             self.assertEqual(p.stat.comm, " a \\n b ")
@@ -248,7 +274,7 @@ class Test_ProcPid(unittest.TestCase):
             self.assertEqual(p.data, {})
 
     @patch('builtins.open', mock_open(read_data="0 1 2 3 4 5 6"))
-    def test_statm(self, *_):
+    def test_statm(self):
         with ProcPid() as p:
             self.assertIsInstance(p.statm, AttrDict)
             for value, key in enumerate('size resident shared text lib data dt'.split()):
@@ -260,7 +286,7 @@ class Test_ProcPid(unittest.TestCase):
             self.assertEqual(p.data, {})
 
     @patch('builtins.open', mock_open(read_data="Uid:\t0 1 2 3\nGid:\t4 5 6 7\nGroups:\t0 1\n"))
-    def test_status(self, *_):
+    def test_status(self):
         with ProcPid() as p:
             self.assertIsInstance(p.status, AttrDict)
             self.assertIsInstance(p.status.Uid.real, Uid)
@@ -302,6 +328,10 @@ class Test_ProcPid(unittest.TestCase):
         with ProcPid() as p:
             with self.assertRaises(FileNotFoundError):
                 _ = p.xxx
+        with self.assertRaises(FileNotFoundError):
+            p = ProcPid(proc="/xxx")
+        with self.assertRaises(ValueError):
+            p = ProcPid("/xxx")
 
 
 class Test_Proc(unittest.TestCase):
@@ -318,8 +348,20 @@ class Test_Proc(unittest.TestCase):
         with Proc() as p:
             self.assertIn(str(os.getpid()), p.tasks())
 
+    @patch('builtins.open', mock_open(read_data="\n#\n# Compiler: gcc (SUSE Linux) 9.2.1 20190903 [gcc-9-branch revision 275330]\n#\nCONFIG_CC_IS_GCC=y\n"))
+    def test_config(self):
+        with Proc() as p:
+            self.assertIsInstance(p.config, AttrDict)
+            self.assertEqual(p.config, p['config'])
+            del p.config
+            self.assertEqual(p.config, p['config'])
+            del p['config']
+            self.assertEqual(p.data, {})
+            self.assertEqual(p.config.CONFIG_CC_IS_GCC, p['config']['CONFIG_CC_IS_GCC'])
+            self.assertEqual(p.config.CONFIG_CC_IS_GCC, 'y')
+
     @patch('builtins.open', mock_open(read_data="#subsys_name\thierarchy\tnum_cgroups\tenabled\ncpuset\t8\t4\t1\n"))
-    def test_cgroups(self, *_):
+    def test_cgroups(self):
         with Proc() as p:
             self.assertIsInstance(p.cgroups, AttrDict)
             self.assertEqual(p.cgroups, p['cgroups'])
@@ -332,7 +374,7 @@ class Test_Proc(unittest.TestCase):
             self.assertEqual(p.cgroups.cpuset.enabled, 1)
 
     @patch('builtins.open', mock_open(read_data="processor\t: 0\nvendor_id\t: GenuineXYZ\n\nprocessor\t: 1\nvendor_id\t: GenuineXYZ\n\n"))
-    def test_cpuinfo(self, *_):
+    def test_cpuinfo(self):
         with Proc() as p:
             self.assertIsInstance(p.cpuinfo, list)
             self.assertEqual(p.cpuinfo, p['cpuinfo'])
@@ -344,7 +386,7 @@ class Test_Proc(unittest.TestCase):
             self.assertEqual(p.cpuinfo[1].vendor_id, "GenuineXYZ")
 
     @patch('builtins.open', mock_open(read_data="MemTotal:       32727212 kB\nMemFree:        24443188 kB\n"))
-    def test_meminfo(self, *_):
+    def test_meminfo(self):
         with Proc() as p:
             self.assertIsInstance(p.meminfo, AttrDict)
             self.assertEqual(p.meminfo, p['meminfo'])
@@ -355,7 +397,7 @@ class Test_Proc(unittest.TestCase):
             self.assertEqual(p.meminfo.MemTotal, p['meminfo']['MemTotal'])
             self.assertEqual(p.meminfo['MemFree'], 24443188)
 
-    def test_mounts(self, *_):
+    def test_mounts(self):
         with Proc() as p, ProcPid() as p_:
             self.assertEqual(p.mounts, p_.mounts)
             self.assertEqual(p.mounts, p['mounts'])
@@ -365,7 +407,7 @@ class Test_Proc(unittest.TestCase):
             self.assertEqual(p.data, {})
 
     @patch('builtins.open', mock_open(read_data="Filename\t\t\t\tType\t\tSize\tUsed\tPriority\n/dev/dm-1\t\t\t\tpartition\t\t32792572\t0\t-2\n"))
-    def test_swaps(self, *_):
+    def test_swaps(self):
         with Proc() as p:
             self.assertIsInstance(p.swaps, list)
             self.assertIsInstance(p.swaps[0], AttrDict)
@@ -378,7 +420,7 @@ class Test_Proc(unittest.TestCase):
             self.assertEqual(p.swaps[0]['Filename'], "/dev/dm-1")
 
     @patch('builtins.open', mock_open(read_data="nr_free_pages 6097475\nnr_zone_inactive_anon 53530\n"))
-    def test_vmstat(self, *_):
+    def test_vmstat(self):
         with Proc() as p:
             self.assertIsInstance(p.vmstat, AttrDict)
             self.assertEqual(p.vmstat, p['vmstat'])
@@ -424,3 +466,5 @@ class Test_Proc(unittest.TestCase):
         with Proc() as p:
             with self.assertRaises(FileNotFoundError):
                 _ = p.xxx
+        with self.assertRaises(FileNotFoundError):
+            p = ProcPid(proc="/xxx")
