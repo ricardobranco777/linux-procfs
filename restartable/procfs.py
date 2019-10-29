@@ -311,7 +311,7 @@ class Proc(FSDict, _Mixin):
         """
         with open("vmstat", opener=self._opener) as file:
             lines = file.read().splitlines()
-        return AttrDict(_.split() for _ in lines)
+        return AttrDict({k: int(v) for k, v in [_.split() for _ in lines]})
 
     def _sysvipc(self, path):
         """
