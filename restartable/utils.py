@@ -78,15 +78,14 @@ class Uid(UserString):
     """
     Class to hold user ID's
     """
-    _name = None
-    @property
-    def name(self):
-        """
-        Convert a User ID string to a user name
-        """
-        if self._name is None:
-            self._name = getpwuid(int(self.data)).pw_name
-        return self._name
+    def __init__(self, arg):
+        super().__init__(arg)
+        try:
+            uid = int(arg)
+            self.name = getpwuid(uid).pw_name
+        except KeyError:
+            self.name = str(arg)
+        self.data = int(uid)
 
 
 @Singleton
@@ -94,15 +93,14 @@ class Gid(UserString):
     """
     Class to hold user ID's
     """
-    _name = None
-    @property
-    def name(self):
-        """
-        Convert a Group ID string to a group name
-        """
-        if self._name is None:
-            self._name = getgrgid(int(self.data)).gr_name
-        return self._name
+    def __init__(self, arg):
+        super().__init__(arg)
+        try:
+            gid = int(arg)
+            self.name = getgrgid(gid).gr_name
+        except KeyError:
+            self.name = str(arg)
+        self.data = int(gid)
 
 
 @Singleton
@@ -110,41 +108,28 @@ class Time(UserString):
     """
     Class for time objects
     """
-    _datetime = None
-    @property
-    def datetime(self):
-        """
-        Convert a time string to a datetime object
-        """
-        if self._datetime is None:
-            self._datetime = datetime.fromtimestamp(float(self.data))
-        return self._datetime
+    def __init__(self, arg):
+        super().__init__(arg)
+        self.datetime = datetime.fromtimestamp(float(self.data))
+        self.data = self.datetime.ctime()
 
 
 @Singleton
 class IPAddr(UserString):
     """
-    Class for IP address objects
+    Class for IPv4/6 address objects
     """
-    _ip_address = None
-    @property
-    def ip_address(self):
-        """
-        Convert a IPv4/6 string to a ip_address object
-        """
-        if self._ip_address is None:
-            string = self.data
-            try:
-                self._ip_address = ip_address(string)
-                return self._ip_address
-            except ValueError:
-                pass
-            if len(string) == 8:
-                address = htonl(int(string, base=16))
+    def __init__(self, arg):
+        super().__init__(arg)
+        try:
+            address = ip_address(self.data)
+        except ValueError:
+            if len(self.data) == 8:
+                address = htonl(int(self.data, base=16))
             else:
-                address = struct.pack('@IIII', *struct.unpack('>IIII', bytes.fromhex(string)))
-            self._ip_address = ip_address(address)
-        return self._ip_address
+                address = struct.pack('@IIII', *struct.unpack('>IIII', bytes.fromhex(self.data)))
+        self.ip_address = ip_address(address)
+        self.data = self.ip_address.compressed
 
 
 class AttrDict(UserDict):
@@ -229,12 +214,6 @@ class CustomJSONEncoder(json.JSONEncoder):
     Use like this: json.dumps(obj, cls=CustomJSONEncoder)
     """
     def default(self, obj):     # pylint: disable=method-hidden,arguments-differ
-        if isinstance(obj, IPAddr):
-            return obj.ip_address.compressed
-        if isinstance(obj, (Uid, Gid)):
-            return int(obj.data)
-        if isinstance(obj, Time):
-            return obj.datetime.ctime()
-        if isinstance(obj, AttrDict):
+        if isinstance(obj, (IPAddr, Uid, Gid, Time, AttrDict)):
             return obj.data
         return json.JSONEncoder.default(self, obj)

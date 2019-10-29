@@ -36,9 +36,9 @@ class Test_ProcNet(unittest.TestCase):
             self.assertIsInstance(net.tcp[0].local_address, IPAddr)
             self.assertIsInstance(net.tcp[0].local_port, int)
             self.assertIsInstance(net.tcp[0].uid, Uid)
-            self.assertEqual(net.tcp[0].local_address.ip_address.compressed, "0.0.0.0")
+            self.assertEqual(net.tcp[0].local_address, "0.0.0.0")
             self.assertEqual(net.tcp[0].local_port, 0)
-            self.assertEqual(net.tcp[0].uid, "0")
+            self.assertEqual(net.tcp[0].uid, 0)
 
     @patch('builtins.open', mock_open(read_data="""IP address       HW type     Flags       HW address            Mask     Device
 10.0.0.1      0x1         0x2         52:54:00:46:2f:8d     *        enp61s0u1u2\n"""))
@@ -54,7 +54,7 @@ class Test_ProcNet(unittest.TestCase):
             self.assertEqual(net.data, {})
             self.assertIsInstance(net.arp[0].IP_address, IPAddr)
             self.assertEqual(net.arp[0].IP_address, "10.0.0.1")
-            self.assertEqual(net.arp[0].IP_address.ip_address.compressed, "10.0.0.1")
+            self.assertEqual(net.arp[0].IP_address, "10.0.0.1")
             self.assertEqual(net.arp[0].HW_address, "52:54:00:46:2f:8d")
 
     @patch('builtins.open', mock_open(read_data="""Inter-|   Receive                                                |  Transmit
@@ -116,7 +116,7 @@ enp61s0u1u2	00000000	00000000	0003	0	0	100	00000000	0	0	0"""))
             self.assertEqual(net.data, {})
             for key in ('Destination', 'Gateway', 'Mask'):
                 self.assertIsInstance(net.route[0][key], IPAddr)
-                self.assertEqual(net.route[0][key].ip_address.compressed, "0.0.0.0")
+                self.assertEqual(net.route[0][key], "0.0.0.0")
 
     @patch('builtins.open', mock_open(read_data="""Num       RefCount Protocol Flags    Type St Inode Path
 0000000000000000: 00000002 00000000 00010000 0001 01 39837 @/tmp/.ICE-unix/2642"""))
@@ -148,7 +148,7 @@ class Test_ProcPid(unittest.TestCase):
     def test_ctime(self, *_):
         with ProcPid() as p:
             self.assertIsInstance(p.ctime, Time)
-            self.assertEqual(p.ctime.datetime.ctime(), 'Thu Jan  1 00:00:00 1970')
+            self.assertEqual(p.ctime, 'Thu Jan  1 00:00:00 1970')
 
     @patch('builtins.open', mock_open(read_data="a\nb\0c\0"))
     def test_cmdline(self, *_):
@@ -267,10 +267,10 @@ class Test_ProcPid(unittest.TestCase):
             self.assertIsInstance(p.status.Gid.real, Gid)
             self.assertIsInstance(p.status.Groups[0], Gid)
             for value, key in enumerate('real effective saved_set filesystem'.split()):
-                self.assertEqual(p.status.Uid[key], str(value))
-                self.assertEqual(p.status.Gid[key], str(value + 4))
+                self.assertEqual(p.status.Uid[key], value)
+                self.assertEqual(p.status.Gid[key], value + 4)
             for i, group in enumerate(p.status.Groups):
-                self.assertEqual(group, str(i))
+                self.assertEqual(group, i)
             self.assertEqual(p.status, p['status'])
             del p.status
             self.assertEqual(p.status, p['status'])
@@ -402,13 +402,13 @@ class Test_Proc(unittest.TestCase):
             self.assertEqual(p.data, {})
             for key in ('uid', 'cuid'):
                 self.assertIsInstance(p.sysvipc.shm[0][key], Uid)
-            self.assertEqual(p.sysvipc.shm[0].uid, str(1000))
+            self.assertEqual(p.sysvipc.shm[0].uid, 1000)
             for key in ('gid', 'cgid'):
                 self.assertIsInstance(p.sysvipc.shm[0][key], Gid)
-            self.assertEqual(p.sysvipc.shm[0].gid, str(100))
+            self.assertEqual(p.sysvipc.shm[0].gid, 100)
             for key in [_ for _ in p.sysvipc.shm[0].keys() if _.endswith("time")]:
                 self.assertIsInstance(p.sysvipc.shm[0][key], Time)
-            self.assertEqual(p.sysvipc.shm[0].ctime.datetime.ctime(), "Tue Oct 29 09:49:55 2019")
+            self.assertEqual(p.sysvipc.shm[0].ctime, "Tue Oct 29 09:49:55 2019")
 
     @patch('builtins.open', mock_open(read_data="Linux version 5.3.7-1-default (geeko@buildhost) (gcc version 9.2.1 20190903 [gcc-9-branch revision 275330] (SUSE Linux)) #1 SMP Mon Oct 21 06:03:17 UTC 2019 (3eea5a9)"))
     def test_version(self):

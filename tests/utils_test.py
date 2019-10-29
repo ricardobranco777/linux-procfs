@@ -44,13 +44,13 @@ class Test_utils(unittest.TestCase):
         ipv4 = IPAddr(ipv4)
         ipv6 = IPAddr(ipv6)
         self.assertIsInstance(ipv4, IPAddr)
-        self.assertEqual(ipv4.ip_address.compressed, '127.0.0.1')
-        self.assertEqual(ipv6.ip_address.compressed, '::1')
+        self.assertEqual(ipv4, '127.0.0.1')
+        self.assertEqual(ipv6, '::1')
 
     def test_Time(self):
         t = Time('0')
         self.assertIsInstance(t, Time)
-        self.assertEqual(t.datetime.ctime(), 'Thu Jan  1 00:00:00 1970')
+        self.assertEqual(t, 'Thu Jan  1 00:00:00 1970')
 
     @patch('restartable.utils.getpwuid', return_value=namedtuple('_', 'pw_name')('abc'))
     def test_Uid(self, *_):
