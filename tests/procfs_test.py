@@ -11,6 +11,7 @@ from restartable.utils import AttrDict, FSDict, IPAddr, Uid, Gid, Time
 # pylint: disable=no-member,unsubscriptable-object,unsupported-delete-operation,no-self-use,line-too-long
 
 
+# NOTE: Addresses and ports in hexadecimal are stored in host-byte order, so they are all set to zeroes here
 class Test_ProcNet(unittest.TestCase):
     def test_ProcNet(self):
         with Proc() as p, ProcPid() as p_:
@@ -20,13 +21,13 @@ class Test_ProcNet(unittest.TestCase):
             self.assertIsInstance(net_, ProcNet)
             self.assertEqual(p.net.tcp[0], p_.net.tcp[0])
 
+    @patch('builtins.open', mock_open(read_data="""  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode
+0: 00000000:0000 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 37742 1 0000000000000000 100 0 0 10 0\n"""))
     def test_protos(self):
         with Proc() as p:
             net = p.net
-            assert net.tcp
             self.assertEqual(net.tcp, net['tcp'])
             del net.tcp
-            assert net['tcp']
             self.assertEqual(net.tcp, net['tcp'])
             self.assertIsInstance(net.tcp[0], AttrDict)
             self.assertEqual(net.tcp[0].local_address, net['tcp'][0]['local_address'])
@@ -35,42 +36,48 @@ class Test_ProcNet(unittest.TestCase):
             self.assertIsInstance(net.tcp[0].local_address, IPAddr)
             self.assertIsInstance(net.tcp[0].local_port, int)
             self.assertIsInstance(net.tcp[0].uid, Uid)
+            self.assertEqual(net.tcp[0].local_address.ip_address.compressed, "0.0.0.0")
+            self.assertEqual(net.tcp[0].local_port, 0)
+            self.assertEqual(net.tcp[0].uid, "0")
 
+    @patch('builtins.open', mock_open(read_data="""IP address       HW type     Flags       HW address            Mask     Device
+10.0.0.1      0x1         0x2         52:54:00:46:2f:8d     *        enp61s0u1u2\n"""))
     def test_arp(self):
         with Proc() as p:
             net = p.net
-            assert net.arp
             self.assertEqual(net.arp, net['arp'])
             del net.arp
-            assert net['arp']
             self.assertEqual(net.arp, net['arp'])
             self.assertIsInstance(net.arp[0], AttrDict)
             self.assertEqual(net.arp[0].IP_address, net['arp'][0]['IP_address'])
             del net['arp']
             self.assertEqual(net.data, {})
             self.assertIsInstance(net.arp[0].IP_address, IPAddr)
+            self.assertEqual(net.arp[0].IP_address, "10.0.0.1")
+            self.assertEqual(net.arp[0].IP_address.ip_address.compressed, "10.0.0.1")
+            self.assertEqual(net.arp[0].HW_address, "52:54:00:46:2f:8d")
 
+    @patch('builtins.open', mock_open(read_data="""Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo: 10393238   32573    0    0    0     0          0         0 10393238   32573    0    0    0     0       0          0\n"""))
     def test_dev(self):
         with Proc() as p:
             net = p.net
-            assert net.dev
             self.assertEqual(net.dev, net['dev'])
             del net.dev
-            assert net['dev']
             self.assertIsInstance(net.dev, AttrDict)
             self.assertEqual(net.dev, net['dev'])
             self.assertEqual(net.dev.lo.RX_bytes, net['dev']['lo']['RX_bytes'])
             del net['dev']
             self.assertEqual(net.data, {})
-            self.assertIsInstance(net.dev['lo'].RX_bytes, int)
+            self.assertEqual(net.dev['lo'].RX_bytes, 10393238)
 
+    @patch('builtins.open', mock_open(read_data="TcpExt: SyncookiesSent SyncookiesRecv\nTcpExt: 1 2\nIpExt: InNoRoutes InTruncatedPkts\nIpExt: 3 4\n"))
     def test_netstat(self):
         with Proc() as p:
             net = p.net
-            assert net.netstat
             self.assertEqual(net.netstat, net['netstat'])
             del net.netstat
-            assert net['netstat']
             self.assertIsInstance(net.netstat, AttrDict)
             self.assertEqual(net.netstat, net['netstat'])
             self.assertEqual(
@@ -78,29 +85,30 @@ class Test_ProcNet(unittest.TestCase):
                 net['netstat']['TcpExt']['SyncookiesSent'])
             del net['netstat']
             self.assertEqual(net.data, {})
-            self.assertIsInstance(net.netstat['TcpExt'].SyncookiesSent, int)
+            self.assertEqual(net.netstat['TcpExt'].SyncookiesSent, 1)
+            self.assertEqual(net.netstat['IpExt'].InTruncatedPkts, 4)
 
+    @patch('builtins.open', mock_open(read_data="Ip: Forwarding DefaultTTL\nIp: 1 64\nIcmp: InMsgs InErrors\nIcmp: 4 0\n"))
     def test_snmp(self):
         with Proc() as p:
             net = p.net
-            assert net.snmp
             self.assertEqual(net.snmp, net['snmp'])
             del net.snmp
-            assert net['snmp']
             self.assertIsInstance(net.snmp, AttrDict)
             self.assertEqual(net.snmp, net['snmp'])
             self.assertEqual(net.snmp.Ip.Forwarding, net['snmp']['Ip']['Forwarding'])
             del net['snmp']
             self.assertEqual(net.data, {})
-            self.assertIsInstance(net.snmp['Ip'].Forwarding, int)
+            self.assertEqual(net.snmp['Ip'].Forwarding, 1)
+            self.assertEqual(net.snmp['Icmp'].InErrors, 0)
 
+    @patch('builtins.open', mock_open(read_data="""Iface	Destination	Gateway 	Flags	RefCnt	Use	Metric	Mask		MTU	Window	IRTT
+enp61s0u1u2	00000000	00000000	0003	0	0	100	00000000	0	0	0"""))
     def test_route(self):
         with Proc() as p:
             net = p.net
-            assert net.route
             self.assertEqual(net.route, net['route'])
             del net.route
-            assert net['route']
             self.assertIsInstance(net.route[0], AttrDict)
             self.assertEqual(net.route, net['route'])
             self.assertEqual(net.route[0].Iface, net['route'][0]['Iface'])
@@ -108,18 +116,25 @@ class Test_ProcNet(unittest.TestCase):
             self.assertEqual(net.data, {})
             for key in ('Destination', 'Gateway', 'Mask'):
                 self.assertIsInstance(net.route[0][key], IPAddr)
+                self.assertEqual(net.route[0][key].ip_address.compressed, "0.0.0.0")
 
+    @patch('builtins.open', mock_open(read_data="""Num       RefCount Protocol Flags    Type St Inode Path
+0000000000000000: 00000002 00000000 00010000 0001 01 39837 @/tmp/.ICE-unix/2642"""))
     def test_unix(self):
         with Proc() as p:
             net = p.net
-            assert net.unix
             self.assertEqual(net.unix, net['unix'])
             del net.unix
-            assert net['unix']
             self.assertEqual(net.unix, net['unix'])
             del net['unix']
             self.assertEqual(net.data, {})
             self.assertIsInstance(net.unix[0], AttrDict)
+            self.assertEqual(net.unix[0].Path, "@/tmp/.ICE-unix/2642")
+
+    def test_xxx(self):
+        with Proc() as p:
+            with self.assertRaises(FileNotFoundError):
+                _ = p.net.xxx
 
 
 class Test_ProcPid(unittest.TestCase):
@@ -198,7 +213,7 @@ class Test_ProcPid(unittest.TestCase):
         with ProcPid() as p:
             self.assertIsInstance(p.maps[0], AttrDict)
             address = "-".join(map(lambda _: _.lstrip('0'), p.maps[0].address.split('-')))
-            assert address in p.map_files
+            self.assertIn(address, p.map_files)
             self.assertEqual(p.maps, p['maps'])
             del p.maps
             self.assertEqual(p.maps, p['maps'])
@@ -272,7 +287,7 @@ class Test_ProcPid(unittest.TestCase):
         with ProcPid() as p:
             self.assertIsInstance(p.task, list)
             self.assertEqual(p.task, p['task'])
-            assert p.pid in p.task
+            self.assertIn(p.pid, p.task)
 
     def test_personality(self):
         with ProcPid() as p:
@@ -283,6 +298,11 @@ class Test_ProcPid(unittest.TestCase):
             self.assertEqual(p.data, {})
             self.assertIsInstance(int(p.personality, base=16), int)
 
+    def test_xxx(self):
+        with ProcPid() as p:
+            with self.assertRaises(FileNotFoundError):
+                _ = p.xxx
+
 
 class Test_Proc(unittest.TestCase):
     def test_Proc(self):
@@ -292,11 +312,11 @@ class Test_Proc(unittest.TestCase):
 
     def test_pids(self):
         with Proc() as p:
-            assert str(os.getpid()) in p.pids()
+            self.assertIn(str(os.getpid()), p.pids())
 
     def test_tasks(self):
         with Proc() as p:
-            assert str(os.getpid()) in p.tasks()
+            self.assertIn(str(os.getpid()), p.tasks())
 
     @patch('builtins.open', mock_open(read_data="#subsys_name\thierarchy\tnum_cgroups\tenabled\ncpuset\t8\t4\t1\n"))
     def test_cgroups(self, *_):
@@ -344,7 +364,7 @@ class Test_Proc(unittest.TestCase):
             del p['mounts']
             self.assertEqual(p.data, {})
 
-    @patch('builtins.open', mock_open(read_data="Filename\t\t\t\tType\t\tSize\tUsed\tPriority\n/dev/dm-1\t\t\t\tpartition\t\t32792572\t0\t-2"))
+    @patch('builtins.open', mock_open(read_data="Filename\t\t\t\tType\t\tSize\tUsed\tPriority\n/dev/dm-1\t\t\t\tpartition\t\t32792572\t0\t-2\n"))
     def test_swaps(self, *_):
         with Proc() as p:
             self.assertIsInstance(p.swaps, list)
@@ -357,7 +377,7 @@ class Test_Proc(unittest.TestCase):
             self.assertEqual(p.swaps[0].Filename, p['swaps'][0]['Filename'])
             self.assertEqual(p.swaps[0]['Filename'], "/dev/dm-1")
 
-    @patch('builtins.open', mock_open(read_data="nr_free_pages 6097475\nnr_zone_inactive_anon 53530"))
+    @patch('builtins.open', mock_open(read_data="nr_free_pages 6097475\nnr_zone_inactive_anon 53530\n"))
     def test_vmstat(self, *_):
         with Proc() as p:
             self.assertIsInstance(p.vmstat, AttrDict)
@@ -369,6 +389,7 @@ class Test_Proc(unittest.TestCase):
             self.assertEqual(p.vmstat.nr_free_pages, p['vmstat']['nr_free_pages'])
             self.assertEqual(p.vmstat['nr_zone_inactive_anon'], 53530)
 
+    @patch('builtins.open', mock_open(read_data="""       key      shmid perms                  size  cpid  lpid nattch   uid   gid  cuid  cgid      atime      dtime      ctime                   rss                  swap\n         0          6  1600                524288  2669  7487      2  1000   100  1000   100 1572344073 1572344073 1572342595                 12288                     0\n"""))
     def test_sysvipc(self):
         with Proc() as p:
             self.assertIsInstance(p.sysvipc, FSDict)
@@ -376,17 +397,20 @@ class Test_Proc(unittest.TestCase):
             self.assertEqual(p.sysvipc.shm, p['sysvipc']['shm'])
             del p.sysvipc
             self.assertEqual(p.sysvipc, p['sysvipc'])
-            self.assertEqual(p.sysvipc.sem, p['sysvipc']['sem'])
+            self.assertEqual(p.sysvipc.shm, p['sysvipc']['shm'])
             del p['sysvipc']
             self.assertEqual(p.data, {})
-            assert p.sysvipc.shm
             for key in ('uid', 'cuid'):
                 self.assertIsInstance(p.sysvipc.shm[0][key], Uid)
+            self.assertEqual(p.sysvipc.shm[0].uid, str(1000))
             for key in ('gid', 'cgid'):
                 self.assertIsInstance(p.sysvipc.shm[0][key], Gid)
+            self.assertEqual(p.sysvipc.shm[0].gid, str(100))
             for key in [_ for _ in p.sysvipc.shm[0].keys() if _.endswith("time")]:
                 self.assertIsInstance(p.sysvipc.shm[0][key], Time)
+            self.assertEqual(p.sysvipc.shm[0].ctime.datetime.ctime(), "Tue Oct 29 09:49:55 2019")
 
+    @patch('builtins.open', mock_open(read_data="Linux version 5.3.7-1-default (geeko@buildhost) (gcc version 9.2.1 20190903 [gcc-9-branch revision 275330] (SUSE Linux)) #1 SMP Mon Oct 21 06:03:17 UTC 2019 (3eea5a9)"))
     def test_version(self):
         with Proc() as p:
             self.assertEqual(p.version, p['version'])
@@ -394,4 +418,9 @@ class Test_Proc(unittest.TestCase):
             self.assertEqual(p.version, p['version'])
             del p['version']
             self.assertEqual(p.data, {})
-            assert p.version.startswith("Linux")
+            self.assertIn("Linux", p.version)
+
+    def test_xxx(self):
+        with Proc() as p:
+            with self.assertRaises(FileNotFoundError):
+                _ = p.xxx
