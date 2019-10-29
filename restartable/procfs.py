@@ -283,8 +283,8 @@ class Proc(FSDict, _Mixin):
         Parses /proc/meminfo and returns an AttrDict
         """
         with open("meminfo", opener=self._opener) as file:
-            lines = file.read().splitlines()
-        return AttrDict([map(str.strip, _.split(':')) for _ in lines])
+            lines = file.read().replace(' kB', '').splitlines()
+        return AttrDict({k: int(v.strip()) for k, v in [_.split(':') for _ in lines]})
 
     @Property
     def mounts(self):
