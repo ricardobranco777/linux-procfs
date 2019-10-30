@@ -155,6 +155,7 @@ enp61s0u1u2	00000000	00000000	0003	0	0	100	00000000	0	0	0"""))
             del net['unix']
             self.assertEqual(net.data, {})
             self.assertIsInstance(net.unix[0], AttrDict)
+            self.assertEqual(net.unix[0].Path, net.unix[0]['Path'])
             self.assertEqual(net.unix[0].Path, "@/tmp/.ICE-unix/2642")
 
     def test_xxx(self):
@@ -268,14 +269,16 @@ class Test_ProcPid(unittest.TestCase):
             address = "-".join(map(lambda _: _.lstrip('0'), p.maps[0].address.split('-')))
             self.assertIn(address, p.map_files)
 
-    @patch('builtins.open', mock_open(read_data="tmpfs /dev/shm tmpfs rw,nosuid,nodev 0 0\n"))
+    @patch('builtins.open', mock_open(read_data="tmpfs /dev/shm tmpfs rw,nosuid,nodev,foo=1,bar=baz 0 0\n"))
     def test_mounts(self):
         with ProcPid() as p:
             self.assertIsInstance(p.mounts[0], AttrDict)
             self.assertEqual(p.mounts[0].fs_spec, "tmpfs")
             self.assertEqual(p.mounts[0].fs_file, "/dev/shm")
             self.assertEqual(p.mounts[0].fs_vfstype, "tmpfs")
-            self.assertEqual(p.mounts[0].fs_mntops, "rw,nosuid,nodev")
+            self.assertEqual(p.mounts[0].fs_mntops, p.mounts[0]['fs_mntops'])
+            self.assertEqual(p.mounts[0].fs_mntops['foo'], 1)
+            self.assertEqual(p.mounts[0].fs_mntops.bar, "baz")
             self.assertEqual(p.mounts[0].fs_freq, "0")
             self.assertEqual(p.mounts[0].fs_passno, "0")
             self.assertEqual(p.mounts, p['mounts'])
@@ -307,7 +310,7 @@ class Test_ProcPid(unittest.TestCase):
             del p['statm']
             self.assertEqual(p.data, {})
 
-    @patch('builtins.open', mock_open(read_data="Uid:\t0 1 2 3\nGid:\t4 5 6 7\nGroups:\t0 1\n"))
+    @patch('builtins.open', mock_open(read_data=("Name:\tfoobar\nUid:\t0 1 2 3\nGid:\t4 5 6 7\nGroups:\t0\n" + "".join(["%s:\t  %s kB\n" % (s, i) for (i, s) in enumerate(('VmPeak', 'VmSize', 'VmLck', 'VmPin', 'VmHWM', 'VmRSS', 'RssAnon', 'RssFile', 'RssShmem', 'VmData', 'VmStk', 'VmExe', 'VmLib', 'VmPTE', 'VmSwap', 'HugetlbPages'))]))))
     def test_status(self):
         with ProcPid() as p:
             self.assertIsInstance(p.status, AttrDict)
@@ -317,8 +320,7 @@ class Test_ProcPid(unittest.TestCase):
             for value, key in enumerate('real effective saved_set filesystem'.split()):
                 self.assertEqual(p.status.Uid[key], value)
                 self.assertEqual(p.status.Gid[key], value + 4)
-            for i, group in enumerate(p.status.Groups):
-                self.assertEqual(group, i)
+            self.assertEqual(p.status.Groups[0].name, "root")
             self.assertEqual(p.status, p['status'])
             del p.status
             self.assertEqual(p.status, p['status'])

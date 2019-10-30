@@ -7,8 +7,11 @@ import sys
 from collections import namedtuple
 from functools import partialmethod
 
-from restartable.utils import sorted_alnum, try_int, CustomJSONEncoder
-from restartable.utils import AttrDict, Property, Singleton, IPAddr, Time, Uid, Gid, FSDict
+from restartable.utils import sorted_alnum, try_int, CustomJSONEncoder, FSDict
+from restartable.utils import AttrDict, Property, Singleton, IPAddr, Time, Uid, Gid, Pathname
+
+
+# pylint: disable=line-too-long
 
 
 class Test_utils(unittest.TestCase):
@@ -19,6 +22,8 @@ class Test_utils(unittest.TestCase):
         self.assertEqual(sorted_alnum(_sorted), _sorted)
 
     def test_try_int(self):
+        self.assertEqual(try_int("0"), 0)
+        self.assertEqual(try_int("00"), "00")
         self.assertEqual(try_int("2"), 2)
         self.assertEqual(try_int("c"), "c")
 
@@ -67,6 +72,16 @@ class Test_utils(unittest.TestCase):
         gid = Gid(888)
         self.assertIsInstance(gid, Gid)
         self.assertEqual(gid.name, 'xyz')
+
+    def test_Pathname(self):
+        path = Pathname("file with \n char")
+        self.assertIsInstance(path, Pathname)
+        self.assertEqual(path, "file with \\n char")
+        self.assertEqual(path.raw, "file with \n char")
+        path = Pathname("no funky chars")
+        self.assertEqual(path, "no funky chars")
+        path = Pathname(None)
+        self.assertIsNone(path)
 
     @patch('os.readlink', return_value='file')
     @patch('os.open', return_value=777)
@@ -141,9 +156,9 @@ class Test_utils(unittest.TestCase):
             mock_a.assert_called_once_with()
 
     def test_CustomJSONEncoder(self):
-        d = AttrDict({'time': Time(0), 'uid': Uid(0), 'gid': Gid(0), 'ip': IPAddr('00000000')})
-        s = '{"gid": 0, "ip": "0.0.0.0", "time": "Thu Jan  1 00:00:00 1970", "uid": 0}'
-        self.assertEqual(s, json.dumps(d, cls=CustomJSONEncoder, sort_keys=True))
+        d = {'time': Time(0.0), 'uid': Uid(0), 'gid': Gid(0), 'ip': IPAddr('0' * 8), 'path': Pathname("/etc")}
+        s = '{"gid": 0, "ip": "0.0.0.0", "path": "/etc", "time": "Thu Jan  1 00:00:00 1970", "uid": 0}'
+        self.assertEqual(s, json.dumps(AttrDict(d), cls=CustomJSONEncoder, sort_keys=True))
 
 
 if __name__ == '__main__':

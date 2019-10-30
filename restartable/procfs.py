@@ -12,7 +12,7 @@ import re
 from functools import partialmethod
 from itertools import zip_longest
 
-from restartable.utils import AttrDict, FSDict, Property, IPAddr, Time, Uid, Gid, try_int
+from restartable.utils import AttrDict, FSDict, Property, IPAddr, Time, Uid, Gid, Pathname, try_int
 
 
 class _Mixin:
@@ -71,7 +71,7 @@ class ProcNet(FSDict):
         keys = [_.strip().replace(' ', '_') for _ in header.split('  ') if _]
         entries = [AttrDict(zip(keys, _.split())) for _ in lines]
         for entry in entries:
-            entry.update({k: IPAddr(entry[k]) for k in ('IP_address',)})
+            entry.update(IP_address=IPAddr(entry.IP_address))
         return entries
 
     def _proto(self, path):
@@ -86,9 +86,12 @@ class ProcNet(FSDict):
             _, *lines = file.read().splitlines()
         entries = [AttrDict(zip(fields, _.replace(':', ' ').split()[1:])) for _ in lines]
         for entry in entries:
-            entry.update({k: IPAddr(entry[k]) for k in ('local_address', 'remote_address')})
-            entry.update({k: int(entry[k], base=16) for k in ('local_port', 'remote_port')})
-            entry.update({'uid': Uid(entry['uid'])})
+            entry.update(
+                local_address=IPAddr(entry.local_address),
+                remote_address=IPAddr(entry.remote_address),
+                local_port=int(entry.local_port, base=16),
+                remote_port=int(entry.remote_port, base=16),
+                uid=Uid(entry.uid))
         return entries
 
     def _parser1(self, path):
@@ -171,7 +174,10 @@ class ProcNet(FSDict):
         with open("net/unix", opener=self._opener) as file:
             keys, *lines = file.read().splitlines()
         # Ignore "Num"
-        return [AttrDict(zip_longest(keys.split()[1:], _.split()[1:])) for _ in lines]
+        entries = [AttrDict(zip_longest(keys.split()[1:], _.split(maxsplit=7)[1:])) for _ in lines]
+        for entry in entries:
+            entry.update(Path=Pathname(entry.Path))
+        return entries
 
     def __missing__(self, path):
         """
@@ -283,7 +289,7 @@ class Proc(FSDict, _Mixin):
         Parses /proc/meminfo and returns an AttrDict
         """
         with open("meminfo", opener=self._opener) as file:
-            lines = file.read().replace(' kB', '').splitlines()
+            lines = file.read().replace('kB\n', '\n').splitlines()
         return AttrDict({k: int(v.strip()) for k, v in [_.split(':') for _ in lines]})
 
     @Property
@@ -302,7 +308,10 @@ class Proc(FSDict, _Mixin):
         """
         with open("swaps", opener=self._opener) as file:
             keys, *values = file.read().splitlines()
-        return [AttrDict(zip(keys.split(), _.split())) for _ in values]
+        entries = [AttrDict(zip(keys.split(), _.rsplit(maxsplit=5))) for _ in values]
+        for entry in entries:
+            entry.update(Filename=Pathname(entry.Filename))
+        return entries
 
     @Property
     def vmstat(self):
@@ -451,23 +460,20 @@ class ProcPid(FSDict, _Mixin):
         fields = ('address', 'perms', 'offset', 'dev', 'inode', 'pathname')
         with open("maps", opener=self._opener) as file:
             lines = file.read().splitlines()
-        maps = [
-            AttrDict(zip_longest(fields, _.split(maxsplit=5)))
-            for _ in lines
-        ]
-        # From the proc(5) manpage:
-        #  pathname is shown unescaped except for newline characters,
-        #  which are replaced with an octal escape sequence. As a result,
-        #  it is not possible to determine whether the original pathname
-        #  contained a newline character or the literal \012 character sequence
-        # So let's readlink() the address in the map_files directory
-        for map_ in maps:
-            if map_.pathname and "\\012" in map_.pathname:
-                map_.pathname = os.readlink(
-                    "map_files/%s" % map_.address,
-                    dir_fd=self._dir_fd
-                ).replace("\n", "\\n")
-        return maps
+        entries = [
+            AttrDict(zip_longest(fields, _.split(maxsplit=5))) for _ in lines]
+        for entry in entries:
+            # From the proc(5) manpage:
+            #  pathname is shown unescaped except for newline characters,
+            #  which are replaced with an octal escape sequence. As a result,
+            #  it is not possible to determine whether the original pathname
+            #  contained a newline character or the literal \012 character sequence
+            # So let's readlink() the address in the map_files directory
+            pathname = entry.pathname
+            if pathname and '\\012' in pathname:
+                pathname = os.readlink("map_files/%s" % entry.address, dir_fd=self._dir_fd)
+            entry.update(pathname=Pathname(pathname))
+        return entries
 
     @Property
     def mounts(self):
@@ -480,7 +486,16 @@ class ProcPid(FSDict, _Mixin):
         )
         with open("mounts", opener=self._opener) as file:
             lines = file.read().splitlines()
-        return [AttrDict(zip(fields, _.split())) for _ in lines]
+        entries = [
+            AttrDict(zip(fields, re.findall(r'^(\S+) (.*?) (\S+) (\S+) (\d+) (\d+)$', _)[0]))
+            for _ in lines]
+        for entry in entries:
+            entry.update(
+                fs_file=Pathname(entry.fs_file),
+                fs_mntops=AttrDict({
+                    k: try_int(v[0]) if v else None
+                    for k, *v in [_.split('=', 1) for _ in entry.fs_mntops.split(',')]}))
+        return entries
 
     @Property
     def smaps(self):
@@ -488,11 +503,11 @@ class ProcPid(FSDict, _Mixin):
         Parses /proc/<pid>/smaps and returns a list of AttrDict's
         """
         with open("smaps", opener=self._opener) as file:
-            lines = file.read().splitlines()
+            lines = file.read().replace('kB\n', '\n').splitlines()
         step = int(len(lines) / len(self.maps))
         maps = [
             {
-                k: try_int(v.strip().replace(' kB', ''))
+                k: try_int(v.strip()) if k != "VmFlags" else v.strip().split()
                 for k, v in [_.split(':') for _ in lines[i + 1: i + step]]
             }
             for i in range(0, len(lines), step)
@@ -543,10 +558,19 @@ class ProcPid(FSDict, _Mixin):
         fields = ('real', 'effective', 'saved_set', 'filesystem')
         with open("status", opener=self._opener) as file:
             lines = file.read().splitlines()
-        status = AttrDict([_.split(':\t') for _ in lines])
-        status.Uid = AttrDict(zip(fields, map(Uid, status.Uid.split())))
-        status.Gid = AttrDict(zip(fields, map(Gid, status.Gid.split())))
-        status.Groups = list(map(Gid, status['Groups'].split()))
+        status = AttrDict({
+            k: try_int(v)
+            for k, v in [_.split(':\t', 1) for _ in lines]})
+        status.update({
+            'Uid': AttrDict(zip(fields, map(Uid, status.Uid.split()))),
+            'Gid': AttrDict(zip(fields, map(Gid, status.Gid.split()))),
+            'Groups': list(map(Gid, str(status.Groups).split()))})
+        status.update({
+            k: int(status[k].replace('kB', '').strip())
+            for k in (
+                'VmPeak', 'VmSize', 'VmLck', 'VmPin', 'VmHWM', 'VmRSS',
+                'RssAnon', 'RssFile', 'RssShmem', 'VmData', 'VmStk',
+                'VmExe', 'VmLib', 'VmPTE', 'VmSwap', 'HugetlbPages')})
         return status
 
     def __getitem__(self, path):

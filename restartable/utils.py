@@ -22,6 +22,9 @@ def try_int(string):
     """
     Return an integer if possible, else string
     """
+    # Ignore octal & hexadecimal
+    if string.isdigit() and string[0] == '0' and len(string) > 1:
+        return string
     try:
         return int(string)
     except ValueError:
@@ -142,6 +145,22 @@ class IPAddr(UserString):
         self.data = self.ip_address.compressed
 
 
+class Pathname(UserString):
+    """
+    Class for pathnames
+    """
+    def __new__(cls, arg):
+        if arg is None:
+            return None
+        return super().__new__(cls)
+
+    def __init__(self, arg):
+        super().__init__(arg)
+        self.raw = self.data
+        # TODO: There are lots of funky characters that can mess with the terminal  # pylint: disable=fixme
+        self.data = self.data.replace("\r", "\\r").replace("\n", "\\n")
+
+
 class AttrDict(UserDict):
     """
     Class for accessing dictionary keys with attributes
@@ -224,6 +243,6 @@ class CustomJSONEncoder(json.JSONEncoder):
     Use like this: json.dumps(obj, cls=CustomJSONEncoder)
     """
     def default(self, obj):     # pylint: disable=method-hidden,arguments-differ
-        if isinstance(obj, (IPAddr, Uid, Gid, Time, AttrDict)):
+        if isinstance(obj, (IPAddr, Uid, Gid, Time, AttrDict, Pathname)):
             return obj.data
         return json.JSONEncoder.default(self, obj)
