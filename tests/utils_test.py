@@ -7,7 +7,7 @@ import sys
 from collections import namedtuple
 from functools import partialmethod
 
-from restartable.utils import sorted_alnum, CustomJSONEncoder
+from restartable.utils import sorted_alnum, try_int, CustomJSONEncoder
 from restartable.utils import AttrDict, Property, Singleton, IPAddr, Time, Uid, Gid, FSDict
 
 
@@ -17,6 +17,10 @@ class Test_utils(unittest.TestCase):
         _sorted = ["1", "2", "10", "abc"]
         self.assertEqual(sorted_alnum(_list), _sorted)
         self.assertEqual(sorted_alnum(_sorted), _sorted)
+
+    def test_try_int(self):
+        self.assertEqual(try_int("2"), 2)
+        self.assertEqual(try_int("c"), "c")
 
     def test_AttrDict(self):
         d = AttrDict({'a': 1})

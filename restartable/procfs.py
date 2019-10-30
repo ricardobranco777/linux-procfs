@@ -12,7 +12,7 @@ import re
 from functools import partialmethod
 from itertools import zip_longest
 
-from restartable.utils import AttrDict, FSDict, Property, IPAddr, Time, Uid, Gid
+from restartable.utils import AttrDict, FSDict, Property, IPAddr, Time, Uid, Gid, try_int
 
 
 class _Mixin:
@@ -492,7 +492,7 @@ class ProcPid(FSDict, _Mixin):
         step = int(len(lines) / len(self.maps))
         maps = [
             {
-                k: v.strip()
+                k: try_int(v.strip().replace(' kB', ''))
                 for k, v in [_.split(':') for _ in lines[i + 1: i + step]]
             }
             for i in range(0, len(lines), step)

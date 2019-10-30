@@ -257,7 +257,7 @@ class Test_ProcPid(unittest.TestCase):
                 self.assertEqual(p.smaps[0].address, p['smaps'][0]['address'])
                 self.assertEqual(p.smaps[0]['pathname'], "/usr/bin/cat")
                 self.assertEqual(p.smaps[0].Size, p['smaps'][0]['Size'])
-                self.assertEqual(p.smaps[0]['KernelPageSize'], '4 kB')
+                self.assertEqual(p.smaps[0]['KernelPageSize'], 4)
                 del p.smaps
                 self.assertEqual(p.smaps, p['smaps'])
                 del p['smaps']

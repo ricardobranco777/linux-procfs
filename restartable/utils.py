@@ -18,6 +18,16 @@ from pwd import getpwuid
 from grp import getgrgid
 
 
+def try_int(string):
+    """
+    Return an integer if possible, else string
+    """
+    try:
+        return int(string)
+    except ValueError:
+        return string
+
+
 def sorted_alnum(list_):
     """
     Returns a list sorted in-place alphanumerically.
