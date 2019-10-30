@@ -1,6 +1,6 @@
 import os
 import unittest
-from unittest.mock import patch, mock_open
+from unittest.mock import patch, mock_open, PropertyMock
 from collections import namedtuple
 from resource import getrlimit, RLIMIT_STACK
 
@@ -235,16 +235,38 @@ class Test_ProcPid(unittest.TestCase):
             del p['limits']
             self.assertEqual(p.data, {})
 
+    @patch('builtins.open', mock_open(read_data="560646741000-560646745000 r--p 00000000 fe:01 7078353                    /usr/bin/cat\n"))
     def test_maps(self):
         with ProcPid() as p:
             self.assertIsInstance(p.maps[0], AttrDict)
-            address = "-".join(map(lambda _: _.lstrip('0'), p.maps[0].address.split('-')))
-            self.assertIn(address, p.map_files)
             self.assertEqual(p.maps, p['maps'])
+            self.assertEqual(p.maps[0].address, p['maps'][0]['address'])
+            self.assertEqual(p.maps[0]['pathname'], "/usr/bin/cat")
             del p.maps
             self.assertEqual(p.maps, p['maps'])
             del p['maps']
             self.assertEqual(p.data, {})
+
+    @patch('builtins.open', mock_open(read_data="560646741000-560646745000 r--p 00000000 fe:01 7078353                    /usr/bin/cat\nSize:                 16 kB\nKernelPageSize:        4 kB\n"))
+    def test_smaps(self):
+        with patch('restartable.procfs.ProcPid.maps', new_callable=PropertyMock) as mock_maps:
+            mock_maps.return_value = [AttrDict({'address': '560646741000-560646745000', 'perms': 'r--p', 'offset': '00000000', 'dev': 'fe:01', 'inode': '7078353', 'pathname': '/usr/bin/cat'})]
+            with ProcPid() as p:
+                self.assertIsInstance(p.smaps[0], AttrDict)
+                self.assertEqual(p.smaps, p['smaps'])
+                self.assertEqual(p.smaps[0].address, p['smaps'][0]['address'])
+                self.assertEqual(p.smaps[0]['pathname'], "/usr/bin/cat")
+                self.assertEqual(p.smaps[0].Size, p['smaps'][0]['Size'])
+                self.assertEqual(p.smaps[0]['KernelPageSize'], '4 kB')
+                del p.smaps
+                self.assertEqual(p.smaps, p['smaps'])
+                del p['smaps']
+                self.assertEqual(p.data, {})
+
+    def test_map_files(self):
+        with ProcPid() as p:
+            address = "-".join(map(lambda _: _.lstrip('0'), p.maps[0].address.split('-')))
+            self.assertIn(address, p.map_files)
 
     @patch('builtins.open', mock_open(read_data="tmpfs /dev/shm tmpfs rw,nosuid,nodev 0 0\n"))
     def test_mounts(self):
@@ -350,7 +372,10 @@ class Test_Proc(unittest.TestCase):
 
     @patch('builtins.open', mock_open(read_data="\n#\n# Compiler: gcc (SUSE Linux) 9.2.1 20190903 [gcc-9-branch revision 275330]\n#\nCONFIG_CC_IS_GCC=y\n"))
     def test_config(self):
-        with Proc() as p:
+        def mock_stat(path, *_, **__):
+            if path == "config.gz":
+                raise FileNotFoundError
+        with Proc() as p, patch('os.stat', mock_stat):
             self.assertIsInstance(p.config, AttrDict)
             self.assertEqual(p.config, p['config'])
             del p.config

@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, mock_open
+from unittest.mock import patch, mock_open, PropertyMock
 import gc
 import json
 import stat
@@ -128,6 +128,13 @@ class Test_utils(unittest.TestCase):
         self.assertEqual(a.a, 777)
         self.assertEqual(a.b, a['b'])
         self.assertEqual(a.b, -777)
+        with patch.object(A, attribute='a', new_callable=PropertyMock, return_value=888) as mock_a:
+            self.assertEqual(a.a, 888)
+            mock_a.assert_called_once_with()
+        with patch.object(A, attribute='b', new_callable=PropertyMock, return_value=-888) as mock_a:
+            a = A()
+            self.assertEqual(a.b, -888)
+            mock_a.assert_called_once_with()
 
     def test_CustomJSONEncoder(self):
         d = AttrDict({'time': Time(0), 'uid': Uid(0), 'gid': Gid(0), 'ip': IPAddr('00000000')})
