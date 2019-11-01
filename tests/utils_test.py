@@ -30,11 +30,11 @@ class Test_utils(unittest.TestCase):
     def test_AttrDict(self):
         d = AttrDict({'a': 1})
         self.assertIsInstance(d, AttrDict)
-        self.assertEqual(d.a, d['a'])
+        self.assertIs(d.a, d['a'])
         del d.a
         self.assertEqual(d, {})
         d['b'] = 2
-        self.assertEqual(d.b, d['b'])
+        self.assertIs(d.b, d['b'])
         del d['b']
         self.assertEqual(d, {})
         self.assertIsNone(d.get('a', None))
@@ -118,9 +118,9 @@ class Test_utils(unittest.TestCase):
         a_ = A(1)
         a2 = A(2)
         b = B(1)
-        self.assertEqual(id(a), id(a_))
-        self.assertNotEqual(id(a), id(a2))
-        self.assertNotEqual(id(a), id(b))
+        self.assertIs(a, a_)
+        self.assertIsNot(a, a2)
+        self.assertIsNot(a, b)
         id_a = id(a)
         del a, a_
         gc.collect()
@@ -145,7 +145,7 @@ class Test_utils(unittest.TestCase):
         a = A()
         self.assertIsInstance(a, A)
         self.assertEqual(a.a, 777)
-        self.assertEqual(a.b, a['b'])
+        self.assertIs(a.b, a['b'])
         self.assertEqual(a.b, -777)
         with patch.object(A, attribute='a', new_callable=PropertyMock, return_value=888) as mock_a:
             self.assertEqual(a.a, 888)

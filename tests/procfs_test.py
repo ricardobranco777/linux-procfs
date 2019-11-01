@@ -26,11 +26,11 @@ class Test_ProcNet(unittest.TestCase):
     def test_protos(self):
         with Proc() as p:
             net = p.net
-            self.assertEqual(net.tcp, net['tcp'])
+            self.assertIs(net.tcp, net['tcp'])
             del net.tcp
-            self.assertEqual(net.tcp, net['tcp'])
+            self.assertIs(net.tcp, net['tcp'])
             self.assertIsInstance(net.tcp[0], AttrDict)
-            self.assertEqual(net.tcp[0].local_address, net['tcp'][0]['local_address'])
+            self.assertIs(net.tcp[0].local_address, net['tcp'][0]['local_address'])
             del net['tcp']
             self.assertEqual(net.data, {})
             self.assertIsInstance(net.tcp[0].local_address, IPAddr)
@@ -45,11 +45,11 @@ class Test_ProcNet(unittest.TestCase):
     def test_arp(self):
         with Proc() as p:
             net = p.net
-            self.assertEqual(net.arp, net['arp'])
+            self.assertIs(net.arp, net['arp'])
             del net.arp
-            self.assertEqual(net.arp, net['arp'])
+            self.assertIs(net.arp, net['arp'])
             self.assertIsInstance(net.arp[0], AttrDict)
-            self.assertEqual(net.arp[0].IP_address, net['arp'][0]['IP_address'])
+            self.assertIs(net.arp[0].IP_address, net['arp'][0]['IP_address'])
             del net['arp']
             self.assertEqual(net.data, {})
             self.assertIsInstance(net.arp[0].IP_address, IPAddr)
@@ -63,11 +63,11 @@ class Test_ProcNet(unittest.TestCase):
     def test_dev(self):
         with Proc() as p:
             net = p.net
-            self.assertEqual(net.dev, net['dev'])
+            self.assertIs(net.dev, net['dev'])
             del net.dev
             self.assertIsInstance(net.dev, AttrDict)
-            self.assertEqual(net.dev, net['dev'])
-            self.assertEqual(net.dev.lo.RX_bytes, net['dev']['lo']['RX_bytes'])
+            self.assertIs(net.dev, net['dev'])
+            self.assertIs(net.dev.lo.RX_bytes, net['dev']['lo']['RX_bytes'])
             del net['dev']
             self.assertEqual(net.data, {})
             self.assertEqual(net.dev['lo'].RX_bytes, 10393238)
@@ -76,26 +76,24 @@ class Test_ProcNet(unittest.TestCase):
     def test_dev_mcast(self):
         with Proc() as p:
             net = p.net
-            self.assertEqual(net.dev_mcast, net['dev_mcast'])
+            self.assertIs(net.dev_mcast, net['dev_mcast'])
             del net.dev_mcast
             self.assertIsInstance(net.dev_mcast, list)
-            self.assertEqual(net.dev_mcast, net['dev_mcast'])
+            self.assertIs(net.dev_mcast, net['dev_mcast'])
             del net['dev_mcast']
             self.assertEqual(net.data, {})
-            self.assertEqual(net.dev_mcast[0].interface, net['dev_mcast'][0]['interface'])
+            self.assertIs(net.dev_mcast[0].interface, net['dev_mcast'][0]['interface'])
             self.assertEqual(net.dev_mcast[0]['interface'], "eth0")
 
     @patch('builtins.open', mock_open(read_data="TcpExt: SyncookiesSent SyncookiesRecv\nTcpExt: 1 2\nIpExt: InNoRoutes InTruncatedPkts\nIpExt: 3 4\n"))
     def test_netstat(self):
         with Proc() as p:
             net = p.net
-            self.assertEqual(net.netstat, net['netstat'])
+            self.assertIs(net.netstat, net['netstat'])
             del net.netstat
             self.assertIsInstance(net.netstat, AttrDict)
-            self.assertEqual(net.netstat, net['netstat'])
-            self.assertEqual(
-                net.netstat.TcpExt.SyncookiesSent,
-                net['netstat']['TcpExt']['SyncookiesSent'])
+            self.assertIs(net.netstat, net['netstat'])
+            self.assertIs(net.netstat.TcpExt.SyncookiesSent, net['netstat']['TcpExt']['SyncookiesSent'])
             del net['netstat']
             self.assertEqual(net.data, {})
             self.assertEqual(net.netstat['TcpExt'].SyncookiesSent, 1)
@@ -105,11 +103,11 @@ class Test_ProcNet(unittest.TestCase):
     def test_snmp(self):
         with Proc() as p:
             net = p.net
-            self.assertEqual(net.snmp, net['snmp'])
+            self.assertIs(net.snmp, net['snmp'])
             del net.snmp
             self.assertIsInstance(net.snmp, AttrDict)
-            self.assertEqual(net.snmp, net['snmp'])
-            self.assertEqual(net.snmp.Ip.Forwarding, net['snmp']['Ip']['Forwarding'])
+            self.assertIs(net.snmp, net['snmp'])
+            self.assertIs(net.snmp.Ip.Forwarding, net['snmp']['Ip']['Forwarding'])
             del net['snmp']
             self.assertEqual(net.data, {})
             self.assertEqual(net.snmp['Ip'].Forwarding, 1)
@@ -119,11 +117,11 @@ class Test_ProcNet(unittest.TestCase):
     def test_snmp6(self):
         with Proc() as p:
             net = p.net
-            self.assertEqual(net.snmp6, net['snmp6'])
+            self.assertIs(net.snmp6, net['snmp6'])
             del net.snmp6
             self.assertIsInstance(net.snmp6, AttrDict)
-            self.assertEqual(net.snmp6, net['snmp6'])
-            self.assertEqual(net.snmp6.Ip6InReceives, net['snmp6']['Ip6InReceives'])
+            self.assertIs(net.snmp6, net['snmp6'])
+            self.assertIs(net.snmp6.Ip6InReceives, net['snmp6']['Ip6InReceives'])
             del net['snmp6']
             self.assertEqual(net.data, {})
             self.assertEqual(net.snmp6.Ip6InHdrErrors, 0)
@@ -133,11 +131,11 @@ enp61s0u1u2	00000000	00000000	0003	0	0	100	00000000	0	0	0"""))
     def test_route(self):
         with Proc() as p:
             net = p.net
-            self.assertEqual(net.route, net['route'])
+            self.assertIs(net.route, net['route'])
             del net.route
             self.assertIsInstance(net.route[0], AttrDict)
-            self.assertEqual(net.route, net['route'])
-            self.assertEqual(net.route[0].Iface, net['route'][0]['Iface'])
+            self.assertIs(net.route, net['route'])
+            self.assertIs(net.route[0].Iface, net['route'][0]['Iface'])
             del net['route']
             self.assertEqual(net.data, {})
             for key in ('Destination', 'Gateway', 'Mask'):
@@ -149,9 +147,9 @@ enp61s0u1u2	00000000	00000000	0003	0	0	100	00000000	0	0	0"""))
     def test_unix(self):
         with Proc() as p:
             net = p.net
-            self.assertEqual(net.unix, net['unix'])
+            self.assertIs(net.unix, net['unix'])
             del net.unix
-            self.assertEqual(net.unix, net['unix'])
+            self.assertIs(net.unix, net['unix'])
             del net['unix']
             self.assertEqual(net.data, {})
             self.assertIsInstance(net.unix[0], AttrDict)
@@ -182,9 +180,9 @@ class Test_ProcPid(unittest.TestCase):
         with ProcPid() as p:
             self.assertIsInstance(p.cmdline, list)
             self.assertEqual(p.cmdline, ["a\\nb", "c"])
-            self.assertEqual(p.cmdline, p['cmdline'])
+            self.assertIs(p.cmdline, p['cmdline'])
             del p.cmdline
-            self.assertEqual(p.cmdline, p['cmdline'])
+            self.assertIs(p.cmdline, p['cmdline'])
             del p['cmdline']
             self.assertEqual(p.data, {})
 
@@ -193,9 +191,9 @@ class Test_ProcPid(unittest.TestCase):
         with ProcPid() as p:
             self.assertIsInstance(p.comm, str)
             self.assertEqual(p.comm, "ab")
-            self.assertEqual(p.comm, p['comm'])
+            self.assertIs(p.comm, p['comm'])
             del p.comm
-            self.assertEqual(p.comm, p['comm'])
+            self.assertIs(p.comm, p['comm'])
             del p['comm']
             self.assertEqual(p.data, {})
 
@@ -203,9 +201,10 @@ class Test_ProcPid(unittest.TestCase):
         with ProcPid() as p:
             self.assertIsInstance(p.environ, AttrDict)
             self.assertEqual(p.environ, os.environ)
-            self.assertEqual(p.environ, p['environ'])
+            self.assertIs(p.environ, p['environ'])
             del p.environ
-            self.assertEqual(p.environ, p['environ'])
+            self.assertIs(p.environ, p['environ'])
+            self.assertIs(p.environ.PATH, p['environ']['PATH'])
             del p['environ']
             self.assertEqual(p.data, {})
 
@@ -220,9 +219,9 @@ class Test_ProcPid(unittest.TestCase):
         with ProcPid() as p:
             self.assertIsInstance(p.io, AttrDict)
             self.assertEqual(p.io, {'a': 1, 'b': 2})
-            self.assertEqual(p.io, p['io'])
+            self.assertIs(p.io, p['io'])
             del p.io
-            self.assertEqual(p.io, p['io'])
+            self.assertIs(p.io, p['io'])
             del p['io']
             self.assertEqual(p.data, {})
 
@@ -230,9 +229,9 @@ class Test_ProcPid(unittest.TestCase):
         with ProcPid() as p:
             self.assertIsInstance(p.limits, AttrDict)
             self.assertEqual(getrlimit(RLIMIT_STACK), (p.limits.stack.soft, p.limits.stack.hard))
-            self.assertEqual(p.limits, p['limits'])
+            self.assertIs(p.limits, p['limits'])
             del p.limits
-            self.assertEqual(p.limits, p['limits'])
+            self.assertIs(p.limits, p['limits'])
             del p['limits']
             self.assertEqual(p.data, {})
 
@@ -240,11 +239,11 @@ class Test_ProcPid(unittest.TestCase):
     def test_maps(self):
         with ProcPid() as p:
             self.assertIsInstance(p.maps[0], AttrDict)
-            self.assertEqual(p.maps, p['maps'])
-            self.assertEqual(p.maps[0].address, p['maps'][0]['address'])
+            self.assertIs(p.maps, p['maps'])
+            self.assertIs(p.maps[0].address, p['maps'][0]['address'])
             self.assertEqual(p.maps[0]['pathname'], "/usr/bin/cat")
             del p.maps
-            self.assertEqual(p.maps, p['maps'])
+            self.assertIs(p.maps, p['maps'])
             del p['maps']
             self.assertEqual(p.data, {})
 
@@ -254,13 +253,13 @@ class Test_ProcPid(unittest.TestCase):
             mock_maps.return_value = [AttrDict({'address': '560646741000-560646745000', 'perms': 'r--p', 'offset': '00000000', 'dev': 'fe:01', 'inode': '7078353', 'pathname': '/usr/bin/cat'})]
             with ProcPid() as p:
                 self.assertIsInstance(p.smaps[0], AttrDict)
-                self.assertEqual(p.smaps, p['smaps'])
-                self.assertEqual(p.smaps[0].address, p['smaps'][0]['address'])
+                self.assertIs(p.smaps, p['smaps'])
+                self.assertIs(p.smaps[0].address, p['smaps'][0]['address'])
                 self.assertEqual(p.smaps[0]['pathname'], "/usr/bin/cat")
-                self.assertEqual(p.smaps[0].Size, p['smaps'][0]['Size'])
+                self.assertIs(p.smaps[0].Size, p['smaps'][0]['Size'])
                 self.assertEqual(p.smaps[0]['KernelPageSize'], 4)
                 del p.smaps
-                self.assertEqual(p.smaps, p['smaps'])
+                self.assertIs(p.smaps, p['smaps'])
                 del p['smaps']
                 self.assertEqual(p.data, {})
 
@@ -281,9 +280,9 @@ class Test_ProcPid(unittest.TestCase):
             self.assertEqual(p.mounts[0].fs_mntops.bar, "baz")
             self.assertEqual(p.mounts[0].fs_freq, "0")
             self.assertEqual(p.mounts[0].fs_passno, "0")
-            self.assertEqual(p.mounts, p['mounts'])
+            self.assertIs(p.mounts, p['mounts'])
             del p.mounts
-            self.assertEqual(p.mounts, p['mounts'])
+            self.assertIs(p.mounts, p['mounts'])
             del p['mounts']
             self.assertEqual(p.data, {})
 
@@ -292,9 +291,9 @@ class Test_ProcPid(unittest.TestCase):
         with ProcPid() as p:
             self.assertIsInstance(p.stat, AttrDict)
             self.assertEqual(p.stat.comm, " a \\n b ")
-            self.assertEqual(p.stat, p['stat'])
+            self.assertIs(p.stat, p['stat'])
             del p.stat
-            self.assertEqual(p.stat, p['stat'])
+            self.assertIs(p.stat, p['stat'])
             del p['stat']
             self.assertEqual(p.data, {})
 
@@ -304,9 +303,9 @@ class Test_ProcPid(unittest.TestCase):
             self.assertIsInstance(p.statm, AttrDict)
             for value, key in enumerate('size resident shared text lib data dt'.split()):
                 self.assertEqual(p.statm[key], value)
-            self.assertEqual(p.statm, p['statm'])
+            self.assertIs(p.statm, p['statm'])
             del p.statm
-            self.assertEqual(p.statm, p['statm'])
+            self.assertIs(p.statm, p['statm'])
             del p['statm']
             self.assertEqual(p.data, {})
 
@@ -321,9 +320,9 @@ class Test_ProcPid(unittest.TestCase):
                 self.assertEqual(p.status.Uid[key], value)
                 self.assertEqual(p.status.Gid[key], value + 4)
             self.assertEqual(p.status.Groups[0].name, "root")
-            self.assertEqual(p.status, p['status'])
+            self.assertIs(p.status, p['status'])
             del p.status
-            self.assertEqual(p.status, p['status'])
+            self.assertIs(p.status, p['status'])
             del p['status']
             self.assertEqual(p.data, {})
 
@@ -341,9 +340,9 @@ class Test_ProcPid(unittest.TestCase):
 
     def test_personality(self):
         with ProcPid() as p:
-            self.assertEqual(p.personality, p['personality'])
+            self.assertIs(p.personality, p['personality'])
             del p.personality
-            self.assertEqual(p.personality, p['personality'])
+            self.assertIs(p.personality, p['personality'])
             del p['personality']
             self.assertEqual(p.data, {})
             self.assertIsInstance(int(p.personality, base=16), int)
@@ -379,24 +378,24 @@ class Test_Proc(unittest.TestCase):
                 raise FileNotFoundError
         with Proc() as p, patch('os.stat', mock_stat):
             self.assertIsInstance(p.config, AttrDict)
-            self.assertEqual(p.config, p['config'])
+            self.assertIs(p.config, p['config'])
             del p.config
-            self.assertEqual(p.config, p['config'])
+            self.assertIs(p.config, p['config'])
             del p['config']
             self.assertEqual(p.data, {})
-            self.assertEqual(p.config.CONFIG_CC_IS_GCC, p['config']['CONFIG_CC_IS_GCC'])
+            self.assertIs(p.config.CONFIG_CC_IS_GCC, p['config']['CONFIG_CC_IS_GCC'])
             self.assertEqual(p.config.CONFIG_CC_IS_GCC, 'y')
 
     @patch('builtins.open', mock_open(read_data="#subsys_name\thierarchy\tnum_cgroups\tenabled\ncpuset\t8\t4\t1\n"))
     def test_cgroups(self):
         with Proc() as p:
             self.assertIsInstance(p.cgroups, AttrDict)
-            self.assertEqual(p.cgroups, p['cgroups'])
+            self.assertIs(p.cgroups, p['cgroups'])
             del p.cgroups
-            self.assertEqual(p.cgroups, p['cgroups'])
+            self.assertIs(p.cgroups, p['cgroups'])
             del p['cgroups']
             self.assertEqual(p.data, {})
-            self.assertEqual(p.cgroups.cpuset.hierarchy, p['cgroups']['cpuset']['hierarchy'])
+            self.assertIs(p.cgroups.cpuset.hierarchy, p['cgroups']['cpuset']['hierarchy'])
             self.assertEqual(p.cgroups.cpuset['hierarchy'], 8)
             self.assertEqual(p.cgroups.cpuset.enabled, 1)
 
@@ -404,32 +403,32 @@ class Test_Proc(unittest.TestCase):
     def test_cpuinfo(self):
         with Proc() as p:
             self.assertIsInstance(p.cpuinfo, list)
-            self.assertEqual(p.cpuinfo, p['cpuinfo'])
+            self.assertIs(p.cpuinfo, p['cpuinfo'])
             del p.cpuinfo
-            self.assertEqual(p.cpuinfo, p['cpuinfo'])
+            self.assertIs(p.cpuinfo, p['cpuinfo'])
             del p['cpuinfo']
             self.assertEqual(p.data, {})
-            self.assertEqual(p.cpuinfo[0].vendor_id, p.cpuinfo[0]['vendor_id'])
+            self.assertIs(p.cpuinfo[0].vendor_id, p.cpuinfo[0]['vendor_id'])
             self.assertEqual(p.cpuinfo[1].vendor_id, "GenuineXYZ")
 
     @patch('builtins.open', mock_open(read_data="MemTotal:       32727212 kB\nMemFree:        24443188 kB\n"))
     def test_meminfo(self):
         with Proc() as p:
             self.assertIsInstance(p.meminfo, AttrDict)
-            self.assertEqual(p.meminfo, p['meminfo'])
+            self.assertIs(p.meminfo, p['meminfo'])
             del p.meminfo
-            self.assertEqual(p.meminfo, p['meminfo'])
+            self.assertIs(p.meminfo, p['meminfo'])
             del p['meminfo']
             self.assertEqual(p.data, {})
-            self.assertEqual(p.meminfo.MemTotal, p['meminfo']['MemTotal'])
+            self.assertIs(p.meminfo.MemTotal, p['meminfo']['MemTotal'])
             self.assertEqual(p.meminfo['MemFree'], 24443188)
 
     def test_mounts(self):
         with Proc() as p, ProcPid() as p_:
             self.assertEqual(p.mounts, p_.mounts)
-            self.assertEqual(p.mounts, p['mounts'])
+            self.assertIs(p.mounts, p['mounts'])
             del p.mounts
-            self.assertEqual(p.mounts, p['mounts'])
+            self.assertIs(p.mounts, p['mounts'])
             del p['mounts']
             self.assertEqual(p.data, {})
 
@@ -438,35 +437,35 @@ class Test_Proc(unittest.TestCase):
         with Proc() as p:
             self.assertIsInstance(p.swaps, list)
             self.assertIsInstance(p.swaps[0], AttrDict)
-            self.assertEqual(p.swaps, p['swaps'])
+            self.assertIs(p.swaps, p['swaps'])
             del p.swaps
-            self.assertEqual(p.swaps, p['swaps'])
+            self.assertIs(p.swaps, p['swaps'])
             del p['swaps']
             self.assertEqual(p.data, {})
-            self.assertEqual(p.swaps[0].Filename, p['swaps'][0]['Filename'])
+            self.assertIs(p.swaps[0].Filename, p['swaps'][0]['Filename'])
             self.assertEqual(p.swaps[0]['Filename'], "/dev/dm-1")
 
     @patch('builtins.open', mock_open(read_data="nr_free_pages 6097475\nnr_zone_inactive_anon 53530\n"))
     def test_vmstat(self):
         with Proc() as p:
             self.assertIsInstance(p.vmstat, AttrDict)
-            self.assertEqual(p.vmstat, p['vmstat'])
+            self.assertIs(p.vmstat, p['vmstat'])
             del p.vmstat
-            self.assertEqual(p.vmstat, p['vmstat'])
+            self.assertIs(p.vmstat, p['vmstat'])
             del p['vmstat']
             self.assertEqual(p.data, {})
-            self.assertEqual(p.vmstat.nr_free_pages, p['vmstat']['nr_free_pages'])
+            self.assertIs(p.vmstat.nr_free_pages, p['vmstat']['nr_free_pages'])
             self.assertEqual(p.vmstat['nr_zone_inactive_anon'], 53530)
 
     @patch('builtins.open', mock_open(read_data="""       key      shmid perms                  size  cpid  lpid nattch   uid   gid  cuid  cgid      atime      dtime      ctime                   rss                  swap\n         0          6  1600                524288  2669  7487      2  1000   100  1000   100 1572344073 1572344073 1572342595                 12288                     0\n"""))
     def test_sysvipc(self):
         with Proc() as p:
             self.assertIsInstance(p.sysvipc, FSDict)
-            self.assertEqual(p.sysvipc, p['sysvipc'])
-            self.assertEqual(p.sysvipc.shm, p['sysvipc']['shm'])
+            self.assertIs(p.sysvipc, p['sysvipc'])
+            self.assertIs(p.sysvipc.shm, p['sysvipc']['shm'])
             del p.sysvipc
-            self.assertEqual(p.sysvipc, p['sysvipc'])
-            self.assertEqual(p.sysvipc.shm, p['sysvipc']['shm'])
+            self.assertIs(p.sysvipc, p['sysvipc'])
+            self.assertIs(p.sysvipc.shm, p['sysvipc']['shm'])
             del p['sysvipc']
             self.assertEqual(p.data, {})
             for key in ('uid', 'cuid'):
@@ -482,9 +481,9 @@ class Test_Proc(unittest.TestCase):
     @patch('builtins.open', mock_open(read_data="Linux version 5.3.7-1-default (geeko@buildhost) (gcc version 9.2.1 20190903 [gcc-9-branch revision 275330] (SUSE Linux)) #1 SMP Mon Oct 21 06:03:17 UTC 2019 (3eea5a9)"))
     def test_version(self):
         with Proc() as p:
-            self.assertEqual(p.version, p['version'])
+            self.assertIs(p.version, p['version'])
             del p.version
-            self.assertEqual(p.version, p['version'])
+            self.assertIs(p.version, p['version'])
             del p['version']
             self.assertEqual(p.data, {})
             self.assertIn("Linux", p.version)
