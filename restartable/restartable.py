@@ -150,7 +150,7 @@ def main():
                 # Get deleted executable mappings
                 deleted = {
                     _['pathname'][:-len(DELETED)]
-                    for _ in proc.maps  # pylint: disable=not-an-iterable  # Make Pylint happy on Python 3.4
+                    for _ in proc.maps
                     if (_['pathname']
                         and 'x' in _['perms']
                         and _['pathname'].endswith(DELETED)

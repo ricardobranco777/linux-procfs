@@ -56,7 +56,7 @@ Options:
 
 ## NOTES
 
-  - Verified to work on Python 3.4+
+  - Verified to work on Python 3.5+
   - You must run it as root to see the information you want.
   - The output is different from `zypper ps` to be easily parseable
 

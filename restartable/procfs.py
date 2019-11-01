@@ -514,9 +514,7 @@ class ProcPid(FSDict, _Mixin):
             }
             for i in range(0, len(lines), step)
         ]
-        # USE this instead when support for Python 3.4 is dropped:
-        # return [AttrDict(**a, **b) for a, b in zip(maps, self.maps)]
-        return [AttrDict(a, **b) for a, b in zip(maps, self.maps)]
+        return [AttrDict(**a, **b) for a, b in zip(maps, self.maps)]
 
     @Property
     def stat(self):
