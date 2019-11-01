@@ -215,12 +215,14 @@ class Proc(FSDict, _Mixin):
         Returns a list of all the tasks (threads) in the system
         """
         #  We could use a list comprehension but a PID could disappear
+        tasks = []
         for pid in self.pids():
             with ProcPid(pid, dir_fd=self._dir_fd) as proc:
                 try:
-                    yield from proc.task
+                    tasks.extend(proc.task)
                 except FileNotFoundError:
                     pass
+        return tasks
 
     @Property
     def config(self):
@@ -573,11 +575,6 @@ class ProcPid(FSDict, _Mixin):
                 'VmExe', 'VmLib', 'VmPTE', 'VmSwap', 'HugetlbPages')})
         return status
 
-    def __getitem__(self, path):
-        if path in ('fd', 'map_files', 'task'):
-            return self._lsdir(path)
-        return super().__getitem__(path)
-
     def __missing__(self, path):
         """
         Creates dynamic keys for elements in /proc/<pid>
@@ -585,6 +582,8 @@ class ProcPid(FSDict, _Mixin):
         if path in ('cmdline', 'comm', 'environ', 'io', 'limits',
                     'maps', 'mounts', 'smaps', 'stat', 'statm', 'status'):
             return getattr(self, path)
+        if path in ('fd', 'map_files', 'task'):
+            return self._lsdir(path)
         if path == "net":
             return ProcNet(dir_fd=self._dir_fd)
         return super().__missing__(path)

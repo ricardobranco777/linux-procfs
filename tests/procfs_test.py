@@ -329,13 +329,13 @@ class Test_ProcPid(unittest.TestCase):
     def test_fd(self):
         with ProcPid() as p:
             self.assertIsInstance(p.task, list)
-            self.assertEqual(p.fd, p['fd'])
+            self.assertIs(p.fd, p['fd'])
             self.assertEqual(p['fd/0'], os.ttyname(0))
 
     def test_task(self):
         with ProcPid() as p:
             self.assertIsInstance(p.task, list)
-            self.assertEqual(p.task, p['task'])
+            self.assertIs(p.task, p['task'])
             self.assertIn(p.pid, p.task)
 
     def test_personality(self):
