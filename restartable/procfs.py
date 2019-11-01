@@ -500,6 +500,24 @@ class ProcPid(FSDict, _Mixin):
         return entries
 
     @Property
+    def numa_maps(self):   # pylint: disable=star-needs-assignment-target  # Make Pylint happy on Python 3.4
+        """
+        Parses /proc/<pid>/numa_maps and returns an AttrDict
+        """
+        with open("numa_maps", opener=self._opener) as file:
+            lines = file.read().splitlines()
+        entry = AttrDict({
+            address: AttrDict({
+                k: try_int(v[0]) if v else None
+                for k, *v in [_.split('=', 1) for _ in ['policy=%s' % policy] + values]})
+            for line in lines
+            for address, policy, *values in [line.split()]})
+        for key in entry:
+            if 'file' in entry[key]:
+                entry[key].update(file=Pathname(entry[key].file))
+        return entry
+
+    @Property
     def smaps(self):
         """
         Parses /proc/<pid>/smaps and returns a list of AttrDict's
@@ -577,8 +595,8 @@ class ProcPid(FSDict, _Mixin):
         """
         Creates dynamic keys for elements in /proc/<pid>
         """
-        if path in ('cmdline', 'comm', 'environ', 'io', 'limits',
-                    'maps', 'mounts', 'smaps', 'stat', 'statm', 'status'):
+        if path in ('cmdline', 'comm', 'environ', 'io', 'limits', 'maps',
+                    'numa_maps', 'mounts', 'smaps', 'stat', 'statm', 'status'):
             return getattr(self, path)
         if path in ('fd', 'map_files', 'task'):
             return self._lsdir(path)

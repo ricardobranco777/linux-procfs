@@ -286,6 +286,17 @@ class Test_ProcPid(unittest.TestCase):
             del p['mounts']
             self.assertEqual(p.data, {})
 
+    @patch('builtins.open', mock_open(read_data="7f7f335d7000 default file=/lib/x86_64-linux-gnu/ld-2.27.so anon=1 dirty=1 N0=1 kernelpagesize_kB=4\n7ffc19d01000 default\n"))
+    def test_numa_maps(self):
+        with ProcPid() as p:
+            self.assertIsInstance(p.numa_maps, AttrDict)
+            self.assertIs(p.numa_maps, p['numa_maps'])
+            del p.numa_maps
+            self.assertIs(p.numa_maps, p['numa_maps'])
+            del p['numa_maps']
+            self.assertEqual(p.numa_maps['7f7f335d7000'].file, "/lib/x86_64-linux-gnu/ld-2.27.so")
+            self.assertEqual(p.numa_maps['7ffc19d01000'].policy, "default")
+
     @patch('builtins.open', mock_open(read_data="777 ( a \n b ) S" + " 1" * 49))
     def test_stat(self):
         with ProcPid() as p:
