@@ -13,6 +13,14 @@ from restartable.utils import AttrDict, FSDict, IPAddr, Uid, Gid, Time
 
 # NOTE: Addresses and ports in hexadecimal are stored in host-byte order, so they are all set to zeroes here
 class Test_ProcNet(unittest.TestCase):
+    n = 0
+
+    def setUp(self):
+        self.n = len(os.listdir("/proc/self/fd"))
+
+    def tearDown(self):
+        self.assertEqual(self.n, len(os.listdir("/proc/self/fd")))
+
     def test_ProcNet(self):
         with Proc() as p, ProcPid() as p_:
             net = p.net
@@ -163,6 +171,14 @@ enp61s0u1u2	00000000	00000000	0003	0	0	100	00000000	0	0	0"""))
 
 
 class Test_ProcPid(unittest.TestCase):
+    n = 0
+
+    def setUp(self):
+        self.n = len(os.listdir("/proc/self/fd"))
+
+    def tearDown(self):
+        self.assertEqual(self.n, len(os.listdir("/proc/self/fd")))
+
     def test_ProcPid(self):
         with ProcPid() as p, ProcPid(os.getpid()) as p_:
             self.assertIsInstance(p, ProcPid)
@@ -369,6 +385,14 @@ class Test_ProcPid(unittest.TestCase):
 
 
 class Test_Proc(unittest.TestCase):
+    n = 0
+
+    def setUp(self):
+        self.n = len(os.listdir("/proc/self/fd"))
+
+    def tearDown(self):
+        self.assertEqual(self.n, len(os.listdir("/proc/self/fd")))
+
     def test_Proc(self):
         with Proc() as p, ProcPid() as p_:
             self.assertIsInstance(p, Proc)
