@@ -103,10 +103,7 @@ def print_info(proc, deleted):
         services.add(service)
     else:
         uid = proc.status.Uid.real
-        try:
-            username = uid.name
-        except KeyError:
-            username = uid
+        username = uid.name
         cmdline = guess_command(proc)
         print(FORMAT_STRING % (
             proc.pid, proc.status.PPid, uid, username, service, cmdline))
