@@ -67,11 +67,21 @@ class Test_utils(unittest.TestCase):
         self.assertIsInstance(uid, Uid)
         self.assertEqual(uid.name, 'abc')
 
+    @patch('restartable.utils.getpwuid', side_effect=KeyError)
+    def test_Uid2(self, *_):
+        uid = Uid(777)
+        self.assertEqual(uid.name, "777")
+
     @patch('restartable.utils.getgrgid', return_value=namedtuple('_', 'gr_name')('xyz'))
     def test_Gid(self, *_):
         gid = Gid(888)
         self.assertIsInstance(gid, Gid)
         self.assertEqual(gid.name, 'xyz')
+
+    @patch('restartable.utils.getpwuid', side_effect=KeyError)
+    def test_Gid2(self, *_):
+        uid = Uid(888)
+        self.assertEqual(uid.name, "888")
 
     def test_Pathname(self):
         path = Pathname("file with \n char")
