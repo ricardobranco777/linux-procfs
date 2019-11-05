@@ -66,7 +66,7 @@ def guess_command(proc):
                 # Strip " (deleted)"
                 exe = exe[:-len(DELETED)]
             basename = os.path.basename(exe)
-            if cmdline.startswith(basename):
+            if cmdline.split()[0] == basename:
                 cmdline = exe + cmdline[len(basename):]
     else:
         cmdline = proc.status.Name
