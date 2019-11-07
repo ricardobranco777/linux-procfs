@@ -80,8 +80,8 @@ class Test_utils(unittest.TestCase):
 
     @patch('restartable.utils.getpwuid', side_effect=KeyError)
     def test_Gid2(self, *_):
-        uid = Uid(888)
-        self.assertEqual(uid.name, "888")
+        gid = Gid(888)
+        self.assertEqual(gid.name, "888")
 
     def test_Pathname(self):
         path = Pathname("file with \n char")
