@@ -183,11 +183,11 @@ class ProcNet(FSDict):
         """
         Create dynamic keys for elements in /proc/net
         """
-        if path in (
+        if path in {
                 'arp', 'dev', 'dev_mcast', 'icmp', 'icmp6',
                 'netstat', 'rarp', 'raw', 'raw6', 'route',
                 'snmp', 'snmp6', 'tcp', 'tcp6',
-                'udp', 'udp6', 'udplite', 'udplite6', 'unix'):
+                'udp', 'udp6', 'udplite', 'udplite6', 'unix'}:
             return getattr(self, path)
         return super().__missing__(os.path.join("net", path))
 
@@ -341,8 +341,8 @@ class Proc(FSDict, _Mixin):
         """
         Creates dynamic keys for elements in /proc/
         """
-        if path in ("config", "cgroups", "cmdline", "cpuinfo",
-                    "meminfo", "mounts", "swaps", "vmstat"):
+        if path in {"config", "cgroups", "cmdline", "cpuinfo",
+                    "meminfo", "mounts", "swaps", "vmstat"}:
             return getattr(self, path)
         if path == "self":
             return ProcPid(dir_fd=self._dir_fd)
@@ -596,10 +596,10 @@ class ProcPid(FSDict, _Mixin):
         """
         Creates dynamic keys for elements in /proc/<pid>
         """
-        if path in ('cmdline', 'comm', 'environ', 'io', 'limits', 'maps',
-                    'numa_maps', 'mounts', 'smaps', 'stat', 'statm', 'status'):
+        if path in {'cmdline', 'comm', 'environ', 'io', 'limits', 'maps',
+                    'numa_maps', 'mounts', 'smaps', 'stat', 'statm', 'status'}:
             return getattr(self, path)
-        if path in ('fd', 'map_files', 'task'):
+        if path in {'fd', 'map_files', 'task'}:
             return self._lsdir(path)
         if path == "net":
             return ProcNet(dir_fd=self._dir_fd)
