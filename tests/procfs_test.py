@@ -2,7 +2,6 @@ import os
 import unittest
 from unittest.mock import patch, mock_open, PropertyMock
 from collections import namedtuple
-from resource import getrlimit, RLIMIT_STACK
 
 from restartable.procfs import Proc, ProcNet, ProcPid
 from restartable.utils import AttrDict, FSDict, IPAddr, Uid, Gid, Time
@@ -241,10 +240,12 @@ class Test_ProcPid(unittest.TestCase):
             del p['io']
             self.assertEqual(p.data, {})
 
+    @patch('builtins.open', mock_open(read_data="Limit                     Soft Limit           Hard Limit           Units    \nMax stack size            8388608              unlimited            bytes   \n"))
     def test_limits(self):
         with ProcPid() as p:
             self.assertIsInstance(p.limits, AttrDict)
-            self.assertEqual(getrlimit(RLIMIT_STACK), (p.limits.stack.soft, p.limits.stack.hard))
+            self.assertEqual(p.limits.stack.soft, 8388608)
+            self.assertEqual(p['limits']['stack']['hard'], -1)
             self.assertIs(p.limits, p['limits'])
             del p.limits
             self.assertIs(p.limits, p['limits'])

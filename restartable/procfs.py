@@ -447,9 +447,9 @@ class ProcPid(FSDict, _Mixin):
         }
         with open("limits", opener=self._opener) as file:
             data = re.findall(
-                r'^(.*?)\s{2,}(\S+)\s{2,}(\S+)',
+                r'^(.*?)\s{2,}(\S+)\s{2,}(\S+)\s{2,}',
                 file.read().replace('unlimited', '-1'),
-                re.MULTILINE)[1:]
+                re.MULTILINE)
         return AttrDict({
             fields[k]: AttrDict(zip(('soft', 'hard'), map(int, v)))
             for (k, *v) in data})
