@@ -586,9 +586,10 @@ class ProcPid(FSDict, _Mixin):
         status.update({
             k: int(status[k].replace('kB', '').strip())
             for k in (
-                'VmPeak', 'VmSize', 'VmLck', 'VmPin', 'VmHWM', 'VmRSS',
-                'RssAnon', 'RssFile', 'RssShmem', 'VmData', 'VmStk',
-                'VmExe', 'VmLib', 'VmPTE', 'VmSwap', 'HugetlbPages')})
+                'HugetlbPages', 'RssAnon', 'RssFile', 'RssShmem', 'VmData',
+                'VmExe', 'VmHWM', 'VmLck', 'VmLib', 'VmPeak', 'VmPin',
+                'VmPMD', 'VmPTE', 'VmRSS', 'VmSize', 'VmStk', 'VmSwap')
+            if k in status})
         return status
 
     def __missing__(self, path):
