@@ -58,37 +58,33 @@ def guess_command(proc):
     """
     if opts.verbose:
         # cmdline is empty if zombie, but zombies have void proc.maps
-        cmdline = " ".join(proc.cmdline)
-        # Use full path
-        if not cmdline.startswith('/') and proc.exe:
+        if not proc.cmdline[0].startswith('/') and proc.exe:
+            # Use full path
             exe = proc.exe
             if exe.endswith(DELETED):
-                # Strip " (deleted)"
-                exe = exe[:-len(DELETED)]
+                exe = exe[:-len(DELETED)]  # Strip " (deleted)"
             basename = os.path.basename(exe)
-            if cmdline.split()[0] == basename:
-                cmdline = exe + cmdline[len(basename):]
-    else:
-        cmdline = proc.status.Name
-        # The command may be truncated to 15 chars
-        #   in /proc/<pid>/{comm,stat,status}
-        # Also, kernel usermode helpers use "none"
-        if proc.cmdline[0] and (len(cmdline) == 15 or cmdline == "none"):
-            cmdline = proc.cmdline[0]
-        # If running a script, get the name of the script instead of the interpreter
-        if re.search(SCRIPT_REGEX, cmdline):
-            # Skip options
-            for arg in proc.cmdline[1:]:
-                if not arg.startswith('-'):
-                    if (arg.startswith('/') and os.path.isfile(arg)
-                            or os.path.isfile(os.path.join(proc.cwd, arg))):
-                        cmdline = arg
-                        break
-        if cmdline.startswith('/'):
-            cmdline = os.path.basename(cmdline)
-        else:
-            cmdline = cmdline.split()[0]
-    return cmdline
+            if proc.cmdline[0] == basename:
+                return " ".join([exe] + proc.cmdline[1:])
+        return " ".join(proc.cmdline)
+    cmdline = proc.status.Name
+    # The command may be truncated to 15 chars
+    #   in /proc/<pid>/{comm,stat,status}
+    # Also, kernel usermode helpers use "none"
+    if proc.cmdline[0] and (len(cmdline) == 15 or cmdline == "none"):
+        cmdline = proc.cmdline[0]
+    # If running a script, get the name of the script instead of the interpreter
+    if re.search(SCRIPT_REGEX, cmdline):
+        # Skip options
+        for arg in proc.cmdline[1:]:
+            if not arg.startswith('-'):
+                if (arg.startswith('/') and os.path.isfile(arg)
+                        or os.path.isfile(os.path.join(proc.cwd, arg))):
+                    cmdline = arg
+                    break
+    if cmdline.startswith('/'):
+        return os.path.basename(cmdline)
+    return cmdline.split()[0]
 
 
 def print_info(proc, deleted):
