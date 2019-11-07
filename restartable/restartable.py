@@ -69,7 +69,7 @@ def guess_command(proc):
     # The command may be truncated to 15 chars
     #   in /proc/<pid>/{comm,stat,status}
     # Also, kernel usermode helpers use "none"
-    if proc.cmdline[0] and (len(cmdline) == 15 or cmdline == "none"):
+    if (len(cmdline) == 15 or cmdline == "none") and proc.cmdline[0]:
         cmdline = proc.cmdline[0]
     # If running a script, get the name of the script instead of the interpreter
     if re.search(SCRIPT_REGEX, cmdline):

@@ -23,7 +23,7 @@ def try_int(string):
     Return an integer if possible, else string
     """
     # Ignore octal & hexadecimal
-    if string.isdigit() and string[0] == '0' and len(string) > 1:
+    if len(string) > 1 and string[0] == '0' and string.isdigit():
         return string
     try:
         return int(string)
