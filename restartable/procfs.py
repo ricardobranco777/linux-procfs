@@ -47,12 +47,15 @@ class ProcNet(FSDict):
     Class to parse /proc/self/net
     """
     def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
-        for proto in ('arp', 'rarp'):
-            setattr(cls, proto, Property(partialmethod(cls._xarp, "net/%s" % proto), name=proto))
-        for proto in (
-                'icmp', 'icmp6', 'raw', 'raw6', 'tcp', 'tcp6',
-                'udp', 'udp6', 'udplite', 'udplite6'):
-            setattr(cls, proto, Property(partialmethod(cls._proto, "net/%s" % proto), name=proto))
+        if not hasattr(cls, 'arp'):
+            for proto in ('arp', 'rarp'):
+                setattr(cls, proto,
+                        Property(partialmethod(cls._xarp, "net/%s" % proto), name=proto))
+            for proto in (
+                    'icmp', 'icmp6', 'raw', 'raw6', 'tcp', 'tcp6',
+                    'udp', 'udp6', 'udplite', 'udplite6'):
+                setattr(cls, proto,
+                        Property(partialmethod(cls._proto, "net/%s" % proto), name=proto))
         return super().__new__(cls)
 
     def __init__(self, dir_fd, *args, **kwargs):
