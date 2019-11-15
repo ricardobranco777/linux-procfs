@@ -9,6 +9,7 @@ import json
 import os
 import stat
 import struct
+import threading
 from collections import UserDict, UserString
 from datetime import datetime
 from ipaddress import ip_address
@@ -50,15 +51,18 @@ class Property:
     def __init__(self, fget=None, name=None):
         self.fget = fget
         self.name = fget.__name__ if name is None else name
+        self.lock = threading.RLock()
 
     def __get__(self, obj, objtype=None):
         if obj is None:
             return self
         if self.name not in obj:
-            if callable(self.fget):
-                obj[self.name] = self.fget(obj)
-            else:   # partialmethod
-                obj[self.name] = self.fget.func(obj, *self.fget.args, **self.fget.keywords)
+            with self.lock:
+                if self.name not in obj:
+                    if callable(self.fget):
+                        obj[self.name] = self.fget(obj)
+                    else:   # partialmethod
+                        obj[self.name] = self.fget.func(obj, *self.fget.args, **self.fget.keywords)
         return obj[self.name]
 
     def __set__(self, obj, value):
@@ -73,7 +77,9 @@ class Singleton:    # pylint: disable=no-member
         # We must use WeakValueDictionary() to let the instances be garbage-collected
         _dict = dict(cls.__dict__, **{'cls': klass, 'instances': WeakValueDictionary()})
         singleton = type(klass.__name__, cls.__bases__, _dict)
-        return super().__new__(singleton)
+        obj = super().__new__(singleton)
+        obj.lock = threading.RLock()
+        return obj
 
     def __instancecheck__(self, other):
         return isinstance(other, self.cls)
@@ -81,8 +87,10 @@ class Singleton:    # pylint: disable=no-member
     def __call__(self, *args, **kwargs):
         key = (args, frozenset(kwargs.items()))
         if key not in self.instances:
-            instance = self.cls.__call__(*args, **kwargs)
-            self.instances[key] = instance
+            with self.lock:
+                if key not in self.instances:
+                    instance = self.cls.__call__(*args, **kwargs)
+                    self.instances[key] = instance
         return self.instances[key]
 
 

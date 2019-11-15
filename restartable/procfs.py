@@ -9,6 +9,7 @@ Module with classes to parse /proc entries
 import gzip
 import os
 import re
+import threading
 from functools import partialmethod
 from itertools import zip_longest
 
@@ -46,16 +47,20 @@ class ProcNet(FSDict):
     """
     Class to parse /proc/self/net
     """
+    _lock = threading.RLock()
+
     def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
         if not hasattr(cls, 'arp'):
-            for proto in ('arp', 'rarp'):
-                setattr(cls, proto,
-                        Property(partialmethod(cls._xarp, "net/%s" % proto), name=proto))
-            for proto in (
-                    'icmp', 'icmp6', 'raw', 'raw6', 'tcp', 'tcp6',
-                    'udp', 'udp6', 'udplite', 'udplite6'):
-                setattr(cls, proto,
-                        Property(partialmethod(cls._proto, "net/%s" % proto), name=proto))
+            with cls._lock:
+                if not hasattr(cls, 'arp'):
+                    for proto in ('arp', 'rarp'):
+                        setattr(cls, proto,
+                                Property(partialmethod(cls._xarp, "net/%s" % proto), name=proto))
+                    for proto in (
+                            'icmp', 'icmp6', 'raw', 'raw6', 'tcp', 'tcp6',
+                            'udp', 'udp6', 'udplite', 'udplite6'):
+                        setattr(cls, proto,
+                                Property(partialmethod(cls._proto, "net/%s" % proto), name=proto))
         return super().__new__(cls)
 
     def __init__(self, dir_fd, *args, **kwargs):
