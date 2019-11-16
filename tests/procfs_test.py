@@ -354,11 +354,12 @@ class Test_ProcPid(unittest.TestCase):
             del p['status']
             self.assertEqual(p.data, {})
 
-    def test_fd(self):
+    @patch('os.readlink', return_value='file')
+    def test_fd(self, *_):
         with ProcPid() as p:
             self.assertIsInstance(p.task, list)
             self.assertIs(p.fd, p['fd'])
-            self.assertEqual(p['fd/0'], os.ttyname(0))
+            self.assertEqual(p['fd/0'], "file")
 
     def test_task(self):
         with ProcPid() as p:
