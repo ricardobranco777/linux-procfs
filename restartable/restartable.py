@@ -60,8 +60,9 @@ def guess_command(proc):
         # cmdline is empty if zombie, but zombies have void proc.maps
         if not proc.cmdline[0].startswith('/') and proc.exe:
             # Use full path
-            if proc.exe.endswith(DELETED):
-                exe = proc.exe[:-len(DELETED)]  # Strip " (deleted)"
+            exe = proc.exe
+            if exe.endswith(DELETED):
+                exe = exe[:-len(DELETED)]  # Strip " (deleted)"
             if os.path.basename(proc.cmdline[0]) == os.path.basename(exe):
                 return " ".join([exe] + proc.cmdline[1:])
         return " ".join(proc.cmdline)
