@@ -479,10 +479,7 @@ class ProcPid(FSDict, _Mixin):
         """
         Parses /proc/<pid>/mounts and returns a list of AttrDict's
         """
-        fields = (
-            'fs_spec', 'fs_file', 'fs_vfstype',
-            'fs_mntops', 'fs_freq', 'fs_passno'
-        )
+        fields = ('spec', 'file', 'vfstype', 'mntops', 'freq', 'passno')
         with open("mounts", opener=self._opener) as file:
             lines = file.read().splitlines()
         entries = [
@@ -490,10 +487,10 @@ class ProcPid(FSDict, _Mixin):
             for _ in lines]
         for entry in entries:
             entry.update(
-                fs_file=Pathname(entry.fs_file),
-                fs_mntops=AttrDict({
+                file=Pathname(entry.file),
+                mntops=AttrDict({
                     k: try_int(v[0]) if v else None
-                    for k, *v in [_.split('=', 1) for _ in entry.fs_mntops.split(',')]}))
+                    for k, *v in [_.split('=', 1) for _ in entry.mntops.split(',')]}))
         return entries
 
     @Property

@@ -289,14 +289,14 @@ class Test_ProcPid(unittest.TestCase):
     def test_mounts(self):
         with ProcPid() as p:
             self.assertIsInstance(p.mounts[0], AttrDict)
-            self.assertEqual(p.mounts[0].fs_spec, "tmpfs")
-            self.assertEqual(p.mounts[0].fs_file, "/dev/shm")
-            self.assertEqual(p.mounts[0].fs_vfstype, "tmpfs")
-            self.assertEqual(p.mounts[0].fs_mntops, p.mounts[0]['fs_mntops'])
-            self.assertEqual(p.mounts[0].fs_mntops['foo'], 1)
-            self.assertEqual(p.mounts[0].fs_mntops.bar, "baz")
-            self.assertEqual(p.mounts[0].fs_freq, "0")
-            self.assertEqual(p.mounts[0].fs_passno, "0")
+            self.assertEqual(p.mounts[0].spec, "tmpfs")
+            self.assertEqual(p.mounts[0].file, "/dev/shm")
+            self.assertEqual(p.mounts[0].vfstype, "tmpfs")
+            self.assertEqual(p.mounts[0].mntops, p.mounts[0]['mntops'])
+            self.assertEqual(p.mounts[0].mntops['foo'], 1)
+            self.assertEqual(p.mounts[0].mntops.bar, "baz")
+            self.assertEqual(p.mounts[0].freq, "0")
+            self.assertEqual(p.mounts[0].passno, "0")
             self.assertIs(p.mounts, p['mounts'])
             del p.mounts
             self.assertIs(p.mounts, p['mounts'])
