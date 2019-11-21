@@ -303,6 +303,18 @@ class Test_ProcPid(unittest.TestCase):
             del p['mounts']
             self.assertEqual(p.data, {})
 
+    @patch('builtins.open', mock_open(read_data="24 100 0:6 / /dev rw,nosuid shared:21 - devtmpfs devtmpfs rw,size=16352080k,nr_inodes=4088020,mode=755\n"))
+    def test_mountinfo(self):
+        with ProcPid() as p:
+            self.assertIsInstance(p.mountinfo[0], AttrDict)
+            self.assertEqual(p.mountinfo[0].major, "0")
+            self.assertIs(p.mountinfo[0].super_options.size, p.mountinfo[0]['super_options']['size'])
+            self.assertEqual(p.mountinfo[0].super_options.nr_inodes, 4088020)
+            del p.mountinfo
+            self.assertIs(p.mountinfo, p['mountinfo'])
+            del p['mountinfo']
+            self.assertEqual(p.data, {})
+
     @patch('builtins.open', mock_open(read_data="7f7f335d7000 default file=/lib/x86_64-linux-gnu/ld-2.27.so anon=1 dirty=1 N0=1 kernelpagesize_kB=4\n7ffc19d01000 default\n"))
     def test_numa_maps(self):
         with ProcPid() as p:

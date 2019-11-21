@@ -494,6 +494,30 @@ class ProcPid(FSDict, _Mixin):
         return entries
 
     @Property
+    def mountinfo(self):
+        """
+        Parses /proc/<pid>/mountinfo and returns a list of AttrDict's
+        """
+        fields = (
+            'mnt_id', 'parent_id', 'major', 'minor', 'root', 'mount', 'options',
+            'optional', 'fstype', 'source', 'super_options')
+        with open("mountinfo", opener=self._opener) as file:
+            lines = file.read().splitlines()
+        regex = r'(\S+) (\S+) (\d+):(\d+) (\S+) (\S+) (\S+) (.*? - )(\S+) (\S+) (\S+)'
+        entries = [AttrDict(zip(fields, re.findall(regex, _)[0])) for _ in lines]
+        for entry in entries:
+            entry.update(
+                mount=Pathname(entry.mount),
+                optional=AttrDict([_.split(':') for _ in entry.optional[:-len(" - ")].split()]),
+                options=AttrDict({
+                    k: try_int(v[0]) if v else None
+                    for k, *v in [_.split('=', 1) for _ in entry.options.split(',')]}),
+                super_options=AttrDict({
+                    k: try_int(v[0]) if v else None
+                    for k, *v in [_.split('=', 1) for _ in entry.super_options.split(',')]}))
+        return entries
+
+    @Property
     def numa_maps(self):   # pylint: disable=star-needs-assignment-target  # Make Pylint happy on Python 3.4
         """
         Parses /proc/<pid>/numa_maps and returns an AttrDict
