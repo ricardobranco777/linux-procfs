@@ -8,15 +8,15 @@ Module for AttrDict
 import json
 import os
 import stat
-import struct
 import threading
 from collections import UserDict, UserString
 from datetime import datetime
-from ipaddress import ip_address
+from ipaddress import ip_address, IPv4Address, IPv6Address
 from socket import htonl
 from weakref import WeakValueDictionary
 from pwd import getpwuid
 from grp import getgrgid
+from sys import byteorder
 
 
 def try_int(string):
@@ -140,13 +140,18 @@ class IPAddr(UserString):
     def __init__(self, arg):
         super().__init__(arg)
         try:
-            address = ip_address(self.data)
+            self.ip_address = ip_address(self.data)
         except ValueError:
             if len(self.data) == 8:
-                address = htonl(int(self.data, base=16))
-            else:
-                address = struct.pack('@IIII', *struct.unpack('>IIII', bytes.fromhex(self.data)))
-        self.ip_address = ip_address(address)
+                self.ip_address = IPv4Address(htonl(int(self.data, base=16)))
+            elif byteorder == "big":
+                self.ip_address = IPv6Address(int(self.data, base=16))
+            elif byteorder == "little":
+                self.ip_address = IPv6Address(
+                    htonl(int(self.data[:8], base=16)) << 24
+                    | htonl(int(self.data[8:16], base=16)) << 16
+                    | htonl(int(self.data[16:24], base=16)) << 8
+                    | htonl(int(self.data[24:], base=16)))
         self.data = self.ip_address.compressed
 
 
