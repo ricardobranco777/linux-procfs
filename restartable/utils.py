@@ -1,5 +1,5 @@
 #
-# Copyright 2019 Ricardo Branco <rbranco@suse.de>
+# Copyright 2019,2020 Ricardo Branco <rbranco@suse.de>
 # MIT License
 #
 """
@@ -94,7 +94,6 @@ class Singleton:    # pylint: disable=no-member
         return self.instances[key]
 
 
-@Singleton
 class Uid(UserString):
     """
     Class to hold user ID's
@@ -109,7 +108,6 @@ class Uid(UserString):
         self.data = int(uid)
 
 
-@Singleton
 class Gid(UserString):
     """
     Class to hold user ID's
@@ -124,7 +122,6 @@ class Gid(UserString):
         self.data = int(gid)
 
 
-@Singleton
 class Time(UserString):
     """
     Class for time objects
