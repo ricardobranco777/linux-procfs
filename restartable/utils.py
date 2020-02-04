@@ -94,32 +94,36 @@ class Singleton:    # pylint: disable=no-member
         return self.instances[key]
 
 
-class Uid(UserString):
+class Uid(int):
     """
     Class to hold user ID's
     """
-    def __init__(self, arg):
-        super().__init__(arg)
+    def __init__(self, uid):
+        super().__init__()
+        self.uid = int(uid)
+
+    @property
+    def name(self):
         try:
-            uid = int(arg)
-            self.name = getpwuid(uid).pw_name
+            return getpwuid(self.uid).pw_name
         except KeyError:
-            self.name = str(arg)
-        self.data = int(uid)
+            return str(self.uid)
 
 
-class Gid(UserString):
+class Gid(int):
     """
     Class to hold user ID's
     """
-    def __init__(self, arg):
-        super().__init__(arg)
+    def __init__(self, gid):
+        super().__init__()
+        self.gid = int(gid)
+
+    @property
+    def name(self):
         try:
-            gid = int(arg)
-            self.name = getgrgid(gid).gr_name
+            return getgrgid(self.gid).gr_name
         except KeyError:
-            self.name = str(arg)
-        self.data = int(gid)
+            return str(self.gid)
 
 
 class Time(UserString):
