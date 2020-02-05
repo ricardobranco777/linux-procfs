@@ -101,13 +101,16 @@ class Uid(int):
     def __init__(self, uid):
         super().__init__()
         self.uid = int(uid)
+        self._name = ""
 
     @property
     def name(self):
-        try:
-            return getpwuid(self.uid).pw_name
-        except KeyError:
-            return str(self.uid)
+        if not self._name:
+            try:
+                self._name = getpwuid(self.uid).pw_name
+            except KeyError:
+                self._name = str(self.uid)
+        return self._name
 
 
 class Gid(int):
@@ -117,13 +120,16 @@ class Gid(int):
     def __init__(self, gid):
         super().__init__()
         self.gid = int(gid)
+        self._name = ""
 
     @property
     def name(self):
-        try:
-            return getgrgid(self.gid).gr_name
-        except KeyError:
-            return str(self.gid)
+        if not self._name:
+            try:
+                self._name = getgrgid(self.gid).gr_name
+            except KeyError:
+                self._name = str(self.gid)
+        return self._name
 
 
 class Time(UserString):
