@@ -74,8 +74,12 @@ class Singleton:    # pylint: disable=no-member
     Singleton decorator to avoid having multiple objects handling the same args
     """
     def __new__(cls, klass):
-        # We must use WeakValueDictionary() to let the instances be garbage-collected
-        _dict = dict(cls.__dict__, **{'cls': klass, 'instances': WeakValueDictionary()})
+        if issubclass(klass, int):
+            dict_ = dict()
+        else:
+            # We must use WeakValueDictionary() to let the instances be garbage-collected
+            dict_ = WeakValueDictionary()
+        _dict = dict(cls.__dict__, **{'cls': klass, 'instances': dict_})
         singleton = type(klass.__name__, cls.__bases__, _dict)
         obj = super().__new__(singleton)
         obj.lock = threading.RLock()
@@ -94,6 +98,7 @@ class Singleton:    # pylint: disable=no-member
         return self.instances[key]
 
 
+@Singleton
 class Uid(int):
     """
     Class to hold user ID's
@@ -113,6 +118,7 @@ class Uid(int):
         return self._name
 
 
+@Singleton
 class Gid(int):
     """
     Class to hold user ID's

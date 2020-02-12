@@ -69,12 +69,12 @@ class Test_utils(unittest.TestCase):
 
     @patch('restartable.utils.getpwuid', side_effect=KeyError)
     def test_Uid2(self, *_):
-        uid = Uid(777)
-        self.assertEqual(uid.name, "777")
+        uid = Uid(888)
+        self.assertEqual(uid.name, "888")
 
     @patch('restartable.utils.getgrgid', return_value=namedtuple('_', 'gr_name')('xyz'))
     def test_Gid(self, *_):
-        gid = Gid(888)
+        gid = Gid(777)
         self.assertIsInstance(gid, Gid)
         self.assertEqual(gid.name, 'xyz')
 
