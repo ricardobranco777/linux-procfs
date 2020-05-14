@@ -42,7 +42,7 @@ IGNORE = (
 SYSTEMD_REGEX = r"\d+:name=systemd:/system\.slice/(?:.*/)?(.*)\.service$"
 
 # Regular expression to match scripting languages
-SCRIPT_REGEX = r"/((perl|python|(ruby\.)?ruby)(\d?(\.\d)?)|(a|ba|c|da|fi|k|pdk|tc|z)?sh)$"
+SCRIPT_REGEX = r"((perl|python|(ruby\.)?ruby)(\d?(\.\d)?)|(a|ba|c|da|fi|k|pdk|tc|z)?sh)$"
 
 FORMAT_STRING = "%s\t%s\t%s\t%-20s\t%20s\t%s"
 
@@ -73,7 +73,7 @@ def guess_command(proc):
     if (len(cmdline) == 15 or cmdline == "none") and proc.cmdline[0]:
         cmdline = proc.cmdline[0]
     # If running a script, get the name of the script instead of the interpreter
-    if re.search(SCRIPT_REGEX, cmdline):
+    if re.match(SCRIPT_REGEX, os.path.basename(cmdline.split()[0])):
         # Skip options
         for arg in proc.cmdline[1:]:
             if not arg.startswith('-'):
