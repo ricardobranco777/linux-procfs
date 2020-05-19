@@ -76,11 +76,10 @@ def guess_command(proc):
     if re.match(SCRIPT_REGEX, os.path.basename(cmdline.split()[0])):
         # Skip options
         for arg in proc.cmdline[1:]:
-            if not arg.startswith('-'):
-                if (arg.startswith('/') and os.path.isfile(arg)
-                        or os.path.isfile(os.path.join(proc.cwd, arg))):
-                    cmdline = arg
-                    break
+            if (arg.startswith('/') and os.path.isfile(arg)
+                    or os.path.isfile(os.path.join(proc.cwd, arg))):
+                cmdline = arg
+                break
     if cmdline.startswith('/'):
         return os.path.basename(cmdline)
     return cmdline.split()[0]
