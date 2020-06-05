@@ -283,6 +283,20 @@ class Proc(FSDict, _Mixin):
         ]
 
     @Property
+    def crypto(self):
+        """
+        Parses /proc/crypto and returns an AttrDict
+        """
+        with open("crypto", opener=self._opener) as file:
+            info = file.read().strip().split('\n\n')
+        return AttrDict({
+            line1.split(':')[1].strip():
+            AttrDict({
+                k.strip(): v.strip() for k, v in [_.split(':') for _ in lines]})
+            for item in info
+            for line1, *lines in [item.splitlines()]})
+
+    @Property
     def meminfo(self):
         """
         Parses /proc/meminfo and returns an AttrDict
@@ -338,7 +352,7 @@ class Proc(FSDict, _Mixin):
         """
         Creates dynamic keys for elements in /proc/
         """
-        if path in {"config", "cgroups", "cmdline", "cpuinfo",
+        if path in {"config", "cgroups", "cmdline", "cpuinfo", "crypto",
                     "meminfo", "mounts", "swaps", "vmstat"}:
             return getattr(self, path)
         if path == "self":

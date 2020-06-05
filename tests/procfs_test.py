@@ -460,6 +460,18 @@ class Test_Proc(unittest.TestCase):
             self.assertIs(p.cpuinfo[0].vendor_id, p.cpuinfo[0]['vendor_id'])
             self.assertEqual(p.cpuinfo[1].vendor_id, "GenuineXYZ")
 
+    @patch('builtins.open', mock_open(read_data="name         : foo\ndriver         : foox\n\nname         : bar\ndriver         : barx\n\n"))
+    def test_crypto(self):
+        with Proc() as p:
+            self.assertIsInstance(p.crypto, AttrDict)
+            self.assertIs(p.crypto, p['crypto'])
+            del p.crypto
+            self.assertIs(p.crypto, p['crypto'])
+            del p['crypto']
+            self.assertEqual(p.data, {})
+            self.assertIs(p.crypto.foo.driver, p.crypto['foo']['driver'])
+            self.assertEqual(p.crypto['foo'].driver, "foox")
+
     @patch('builtins.open', mock_open(read_data="MemTotal:       32727212 kB\nMemFree:        24443188 kB\n"))
     def test_meminfo(self):
         with Proc() as p:
