@@ -472,6 +472,19 @@ class Test_Proc(unittest.TestCase):
             self.assertIs(p.crypto.foo.driver, p.crypto['foo']['driver'])
             self.assertEqual(p.crypto['foo'].driver, "foox")
 
+    @patch('builtins.open', mock_open(read_data="1: POSIX  ADVISORY  WRITE 25041 fd:04:273498566 0 EOF\n2: POSIX  ADVISORY  READ 25041 fd:04:811594996 1073741826 1073742335\n"))
+    def test_locks(self):
+        with Proc() as p:
+            self.assertIsInstance(p.locks, list)
+            self.assertIsInstance(p.locks[0], AttrDict)
+            self.assertIs(p.locks, p['locks'])
+            del p.locks
+            self.assertIs(p.locks, p['locks'])
+            del p['locks']
+            self.assertEqual(p.data, {})
+            self.assertIs(p.locks[1].type, p.locks[1]['type'])
+            self.assertEqual(p.locks[0].mode, "WRITE")
+
     @patch('builtins.open', mock_open(read_data="MemTotal:       32727212 kB\nMemFree:        24443188 kB\n"))
     def test_meminfo(self):
         with Proc() as p:

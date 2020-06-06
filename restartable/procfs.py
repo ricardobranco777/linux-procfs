@@ -297,6 +297,16 @@ class Proc(FSDict, _Mixin):
             for line1, *lines in [item.splitlines()]})
 
     @Property
+    def locks(self):
+        """
+        Parses /proc/locks and returns a list of AttrDict's
+        """
+        fields = ('type', 'xtype', 'mode', 'pid', 'major', 'minor', 'inode', 'start', 'end')
+        with open("locks", opener=self._opener) as file:
+            data = file.read()
+        return [AttrDict(zip(fields, _.replace(':', ' ').split()[1:])) for _ in data.splitlines()]
+
+    @Property
     def meminfo(self):
         """
         Parses /proc/meminfo and returns an AttrDict
@@ -353,7 +363,7 @@ class Proc(FSDict, _Mixin):
         Creates dynamic keys for elements in /proc/
         """
         if path in {"config", "cgroups", "cmdline", "cpuinfo", "crypto",
-                    "meminfo", "mounts", "swaps", "vmstat"}:
+                    "locks", "meminfo", "mounts", "swaps", "vmstat"}:
             return getattr(self, path)
         if path == "self":
             return ProcPid(dir_fd=self._dir_fd)
