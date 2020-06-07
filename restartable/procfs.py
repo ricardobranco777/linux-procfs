@@ -146,6 +146,26 @@ class ProcNet(FSDict):
             for k, v in [_.split()]})
 
     @Property
+    def ipv6_route(self):
+        """
+        Parse /proc/net/ipv6_route
+        """
+        fields = (
+            'dst_network', 'dst_prefixlen', 'src_network', 'src_prefixlen',
+            'next_hop', 'metric', 'refcnt', 'usecnt', 'flags', 'device')
+        with open("net/ipv6_route", opener=self._opener) as file:
+            lines = file.read().splitlines()
+        entries = [AttrDict(zip(fields, _.split())) for _ in lines]
+        for entry in entries:
+            entry.update({
+                k: IPAddr(entry[k], big_endian=False)
+                for k in ('dst_network', 'src_network', 'next_hop')})
+            entry.update({
+                k: int(entry[k], base=16)
+                for k in ('dst_prefixlen', 'src_prefixlen', 'metric', 'refcnt', 'usecnt', 'flags')})
+        return entries
+
+    @Property
     def route(self):
         """
         Parse /proc/net/route
@@ -176,8 +196,8 @@ class ProcNet(FSDict):
         """
         if path in {
                 'arp', 'dev', 'dev_mcast', 'icmp', 'icmp6',
-                'netstat', 'rarp', 'raw', 'raw6', 'route',
-                'snmp', 'snmp6', 'tcp', 'tcp6',
+                'ipv6_route', 'netstat', 'rarp', 'raw', 'raw6',
+                'route', 'snmp', 'snmp6', 'tcp', 'tcp6',
                 'udp', 'udp6', 'udplite', 'udplite6', 'unix'}:
             return getattr(self, path)
         return super().__missing__(os.path.join("net", path))

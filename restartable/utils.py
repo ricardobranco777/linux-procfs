@@ -153,21 +153,27 @@ class IPAddr(UserString):
     """
     Class for IPv4/6 address objects
     """
-    def __init__(self, arg):
+    def __init__(self, arg, big_endian=True):
         super().__init__(arg)
         try:
             self.ip_address = ip_address(self.data)
         except ValueError:
-            if len(self.data) == 8:
-                self.ip_address = IPv4Address(htonl(int(self.data, base=16)))
-            elif byteorder == "big":
-                self.ip_address = IPv6Address(int(self.data, base=16))
-            elif byteorder == "little":
-                self.ip_address = IPv6Address(
-                    htonl(int(self.data[:8], base=16)) << 24
-                    | htonl(int(self.data[8:16], base=16)) << 16
-                    | htonl(int(self.data[16:24], base=16)) << 8
-                    | htonl(int(self.data[24:], base=16)))
+            if big_endian:
+                if len(self.data) == 8:
+                    self.ip_address = IPv4Address(htonl(int(self.data, base=16)))
+                elif byteorder == "big":
+                    self.ip_address = IPv6Address(int(self.data, base=16))
+                elif byteorder == "little":
+                    self.ip_address = IPv6Address(
+                        htonl(int(self.data[:8], base=16)) << 24
+                        | htonl(int(self.data[8:16], base=16)) << 16
+                        | htonl(int(self.data[16:24], base=16)) << 8
+                        | htonl(int(self.data[24:], base=16)))
+            else:
+                if len(self.data) == 8:
+                    self.ip_address = IPv4Address(int(self.data, base=16))
+                else:
+                    self.ip_address = IPv6Address(int(self.data, base=16))
         self.data = self.ip_address.compressed
 
 

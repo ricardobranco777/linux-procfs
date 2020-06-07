@@ -134,7 +134,7 @@ class Test_ProcNet(unittest.TestCase):
             self.assertEqual(net.snmp6.Ip6InHdrErrors, 0)
 
     @patch('builtins.open', mock_open(read_data="""Iface	Destination	Gateway 	Flags	RefCnt	Use	Metric	Mask		MTU	Window	IRTT
-enp61s0u1u2	00000000	00000000	0003	0	0	100	00000000	0	0	0"""))
+enp61s0u1u2	00000000	00000000	0003	0	0	100	00000000	0	0	0\n"""))
     def test_route(self):
         with Proc() as p:
             net = p.net
@@ -149,8 +149,22 @@ enp61s0u1u2	00000000	00000000	0003	0	0	100	00000000	0	0	0"""))
                 self.assertIsInstance(net.route[0][key], IPAddr)
                 self.assertEqual(net.route[0][key], "0.0.0.0")
 
+    @patch('builtins.open', mock_open(read_data="00000000000000000000000000000001 80 00000000000000000000000000000000 00 00000000000000000000000000000000 00000100 00000001 00000000 00000001       lo\n"))
+    def test_ipv6_route(self):
+        with Proc() as p:
+            net = p.net
+            self.assertIs(net.ipv6_route, net['ipv6_route'])
+            del net.ipv6_route
+            self.assertIsInstance(net.ipv6_route[0], AttrDict)
+            self.assertIs(net.ipv6_route, net['ipv6_route'])
+            self.assertIs(net.ipv6_route[0].device, net['ipv6_route'][0]['device'])
+            del net['ipv6_route']
+            self.assertEqual(net.data, {})
+            self.assertIsInstance(net.ipv6_route[0].dst_network, IPAddr)
+            self.assertEqual(net.ipv6_route[0]['dst_network'], "::1")
+
     @patch('builtins.open', mock_open(read_data="""Num       RefCount Protocol Flags    Type St Inode Path
-0000000000000000: 00000002 00000000 00010000 0001 01 39837 @/tmp/.ICE-unix/2642"""))
+0000000000000000: 00000002 00000000 00010000 0001 01 39837 @/tmp/.ICE-unix/2642\n"""))
     def test_unix(self):
         with Proc() as p:
             net = p.net

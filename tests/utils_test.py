@@ -55,6 +55,8 @@ class Test_utils(unittest.TestCase):
         self.assertIsInstance(ipv4, IPAddr)
         self.assertEqual(ipv4, '127.0.0.1')
         self.assertEqual(ipv6, '::1')
+        self.assertEqual(IPAddr('7F000001', big_endian=False), '127.0.0.1')
+        self.assertEqual(IPAddr('00000000000000000000000000000001', big_endian=False), '::1')
 
     def test_Time(self):
         t = Time('0')
