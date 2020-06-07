@@ -143,7 +143,7 @@ def main():
                 # Get deleted executable mappings
                 deleted = {
                     _['pathname'][:-len(DELETED)]
-                    for _ in proc.maps
+                    for _ in list(proc.maps)
                     if (_['pathname']
                         and 'x' in _['perms']
                         and _['pathname'].endswith(DELETED)
