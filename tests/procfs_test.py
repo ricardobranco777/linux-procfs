@@ -462,7 +462,7 @@ class Test_Proc(unittest.TestCase):
             self.assertEqual(p.cgroups.cpuset['hierarchy'], 8)
             self.assertEqual(p.cgroups.cpuset.enabled, 1)
 
-    @patch('builtins.open', mock_open(read_data="processor\t: 0\nvendor_id\t: GenuineXYZ\n\nprocessor\t: 1\nvendor_id\t: GenuineXYZ\n\n"))
+    @patch('builtins.open', mock_open(read_data="processor\t: 0\nvendor_id\t: GenuineXYZ\nflags: foo bar\n\nprocessor\t: 1\nvendor_id\t: GenuineXYZ\nflags: foo bar\n\n"))
     def test_cpuinfo(self):
         with Proc() as p:
             self.assertIsInstance(p.cpuinfo, list)
@@ -473,6 +473,7 @@ class Test_Proc(unittest.TestCase):
             self.assertEqual(p.data, {})
             self.assertIs(p.cpuinfo[0].vendor_id, p.cpuinfo[0]['vendor_id'])
             self.assertEqual(p.cpuinfo[1].vendor_id, "GenuineXYZ")
+            self.assertIn("foo", p.cpuinfo[1].flags)
 
     @patch('builtins.open', mock_open(read_data="name         : foo\ndriver         : foox\n\nname         : bar\ndriver         : barx\n\n"))
     def test_crypto(self):

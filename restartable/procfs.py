@@ -297,10 +297,13 @@ class Proc(FSDict, _Mixin):
         """
         with open("cpuinfo", opener=self._opener) as file:
             cpus = file.read()[:-1].split('\n\n')
-        return [
+        entries = [
             AttrDict([map(str.strip, _.split(':')) for _ in cpu.splitlines()])
             for cpu in cpus
         ]
+        for entry in entries:
+            entry.flags = set(entry.flags.split())
+        return entries
 
     @Property
     def crypto(self):
