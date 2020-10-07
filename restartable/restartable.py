@@ -112,14 +112,6 @@ def main():
     """
     Main function
     """
-    argparser = ArgumentParser(usage=USAGE, add_help=False)
-    argparser.add_argument('-h', '--help', action='store_true')
-    argparser.add_argument('-P', '--proc', default='/proc')
-    argparser.add_argument('-s', '--short', action='count', default=0)
-    argparser.add_argument('-v', '--verbose', action='store_true')
-    argparser.add_argument('-V', '--version', action='store_true')
-    global opts
-    opts = argparser.parse_args()
     if opts.help:
         print(USAGE)
         sys.exit(0)
@@ -158,6 +150,13 @@ def main():
 
 
 if __name__ == "__main__":
+    argparser = ArgumentParser(usage=USAGE, add_help=False)
+    argparser.add_argument('-h', '--help', action='store_true')
+    argparser.add_argument('-P', '--proc', default='/proc')
+    argparser.add_argument('-s', '--short', action='count', default=0)
+    argparser.add_argument('-v', '--verbose', action='store_true')
+    argparser.add_argument('-V', '--version', action='store_true')
+    opts = argparser.parse_args()
     try:
         main()
     except KeyboardInterrupt:
