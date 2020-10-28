@@ -50,7 +50,7 @@ class Property:
     """
     def __init__(self, fget=None, name=None):
         self.fget = fget
-        self.name = fget.__name__ if name is None else name
+        self.name = name or fget.__name__
         self.lock = threading.RLock()
 
     def __get__(self, obj, objtype=None):
