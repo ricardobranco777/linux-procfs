@@ -22,6 +22,7 @@ python:
 
 install:
   - pip install --no-cache-dir -r requirements-test.txt
+  - pip install .
 
 script:
   - make test
