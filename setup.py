@@ -3,7 +3,7 @@
 Setup script
 """
 
-from setuptools import setup
+from setuptools import find_packages, setup
 from _restartable import __version__
 
 
@@ -32,6 +32,7 @@ setup(
     author_email='rbranco@suse.de',
     url='https://github.com/ricardobranco777/restartable',
     package_dir={'restartable': '_restartable'},
+    packages=find_packages(),
     include_package_data=True,
     python_requires='>=3.5',
     install_requires=read('requirements.txt'),
