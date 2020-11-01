@@ -3,8 +3,8 @@
 Setup script
 """
 
-from setuptools import find_packages, setup
-from restartable import __version__
+from setuptools import setup
+from _restartable import __version__
 
 
 def read(path):
@@ -31,15 +31,14 @@ setup(
     author="Ricardo Branco",
     author_email='rbranco@suse.de',
     url='https://github.com/ricardobranco777/restartable',
-    package_dir={'restartable': 'restartable'},
-    packages=find_packages(),
+    package_dir={'restartable': '_restartable'},
     include_package_data=True,
     python_requires='>=3.5',
     install_requires=read('requirements.txt'),
     license='MIT License',
     zip_safe=False,
     keywords='restartable',
-    scripts=['scripts/restartable'],
+    scripts=['restartable'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',

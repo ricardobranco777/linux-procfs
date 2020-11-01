@@ -12,7 +12,7 @@ import re
 from functools import partialmethod
 from itertools import zip_longest
 
-from restartable.utils import AttrDict, FSDict, Property, IPAddr, Time, Uid, Gid, Pathname, try_int
+from _restartable.utils import AttrDict, FSDict, Property, IPAddr, Time, Uid, Gid, Pathname, try_int
 
 
 class _Mixin:

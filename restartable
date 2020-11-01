@@ -12,8 +12,8 @@ import re
 import sys
 from argparse import ArgumentParser
 
-from restartable.procfs import Proc, ProcPid
-from restartable import __version__
+from _restartable.procfs import Proc, ProcPid
+from _restartable import __version__
 
 
 USAGE = """%s [OPTIONS]
