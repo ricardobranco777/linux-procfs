@@ -138,43 +138,45 @@ class Gid(int):
         return self._name
 
 
-class Time(UserString):
+class Time(str):
     """
     Class for time objects
     """
-    def __init__(self, arg):
-        super().__init__(arg)
-        self.datetime = datetime.fromtimestamp(float(self.data))
-        self.data = self.datetime.ctime()
+    def __new__(cls, arg):
+        dtime = datetime.fromtimestamp(float(arg))
+        obj = str.__new__(cls, dtime.ctime())
+        obj.datetime = dtime
+        return obj
 
 
 @Singleton
-class IPAddr(UserString):
+class IPAddr(str):
     """
     Class for IPv4/6 address objects
     """
-    def __init__(self, arg, big_endian=True):
-        super().__init__(arg)
+    def __new__(cls, arg, big_endian=True):
         try:
-            self.ip_address = ip_address(self.data)
+            address = ip_address(arg)
         except ValueError:
             if big_endian:
-                if len(self.data) == 8:
-                    self.ip_address = IPv4Address(htonl(int(self.data, base=16)))
+                if len(arg) == 8:
+                    address = IPv4Address(htonl(int(arg, base=16)))
                 elif byteorder == "big":
-                    self.ip_address = IPv6Address(int(self.data, base=16))
+                    address = IPv6Address(int(arg, base=16))
                 elif byteorder == "little":
-                    self.ip_address = IPv6Address(
-                        htonl(int(self.data[:8], base=16)) << 24
-                        | htonl(int(self.data[8:16], base=16)) << 16
-                        | htonl(int(self.data[16:24], base=16)) << 8
-                        | htonl(int(self.data[24:], base=16)))
+                    address = IPv6Address(
+                        htonl(int(arg[:8], base=16)) << 24
+                        | htonl(int(arg[8:16], base=16)) << 16
+                        | htonl(int(arg[16:24], base=16)) << 8
+                        | htonl(int(arg[24:], base=16)))
             else:
-                if len(self.data) == 8:
-                    self.ip_address = IPv4Address(int(self.data, base=16))
+                if len(arg) == 8:
+                    address = IPv4Address(int(arg, base=16))
                 else:
-                    self.ip_address = IPv6Address(int(self.data, base=16))
-        self.data = self.ip_address.compressed
+                    address = IPv6Address(int(arg, base=16))
+        obj = str.__new__(cls, address.compressed)
+        obj.ip_address = address
+        return obj
 
 
 class Pathname(UserString):
