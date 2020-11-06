@@ -8,7 +8,7 @@ cp -H /bin/sleep /tmp
 
 rm -f /tmp/sleep
 
-restartable -v | grep -q sleep.60
+python3 restartable -v | grep -q sleep.60
 
 kill %1
 
