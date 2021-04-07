@@ -96,7 +96,7 @@ def print_info(proc, deleted):
     """
     try:
         service = re.findall(SYSTEMD_REGEX, proc.cgroup, re.MULTILINE)[0]
-    except IndexError:
+    except (IndexError, OSError):
         if opts.short > 1:
             return
         service = "-"
