@@ -53,6 +53,9 @@ class Property:
         self.name = name or fget.__name__
         self.lock = threading.RLock()
 
+    def __set_name__(self, owner, name):
+        self.name = name
+
     def __get__(self, obj, objtype=None):
         if obj is None:
             return self

@@ -9,7 +9,6 @@ Module with classes to parse /proc entries
 import gzip
 import os
 import re
-from functools import partialmethod
 from itertools import zip_longest
 
 from _restartable.utils import AttrDict, FSDict, Property, IPAddr, Time, Uid, Gid, Pathname, try_int
@@ -203,10 +202,15 @@ class ProcNet(FSDict):
         return super().__missing__(os.path.join("net", path))
 
 
-for proto in ('arp', 'rarp'):
-    setattr(ProcNet, proto, Property(partialmethod(ProcNet._xarp, "net/%s" % proto), name=proto))   # pylint: disable=protected-access
-for proto in ('icmp', 'icmp6', 'raw', 'raw6', 'tcp', 'tcp6', 'udp', 'udp6', 'udplite', 'udplite6'):
-    setattr(ProcNet, proto, Property(partialmethod(ProcNet._proto, "net/%s" % proto), name=proto))  # pylint: disable=protected-access
+for proto in ('arp', 'rarp', 'icmp', 'icmp6', 'raw', 'raw6',
+              'tcp', 'tcp6', 'udp', 'udp6', 'udplite', 'udplite6'):
+    @Property
+    def handler(self, *, protocol=proto):
+        if protocol in {'arp', 'rarp'}:
+            return self._xarp("net/%s" % protocol)  # pylint: disable=protected-access
+        return self._proto("net/%s" % protocol)  # pylint: disable=protected-access
+    setattr(ProcNet, proto, handler)
+    handler.__set_name__(ProcNet, proto)
 
 
 class Proc(FSDict, _Mixin):
