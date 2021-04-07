@@ -39,7 +39,12 @@ IGNORE = (
 )
 
 # Regular expression to find systemd service unit in /proc/<pid>/cgroup
-SYSTEMD_REGEX = r"\d+:(?:name=systemd)?:/system\.slice/(?:.*/)?(.*)\.service$"
+with ProcPid(1) as pid1:
+    init = str(pid1.comm)
+    if init == "systemd":
+        SYSTEMD_REGEX = r"\d+:(?:name=systemd)?:/system\.slice/(?:.*/)?(.*)\.service$"
+    else:
+        SYSTEMD_REGEX = r"\d+:name=openrc:/(.*)$"
 
 # Regular expression to match scripting languages
 SCRIPT_REGEX = r"((perl|python|(ruby\.)?ruby)(\d?(\.\d)?)|(a|ba|c|da|fi|k|pdk|tc|z)?sh)$"
