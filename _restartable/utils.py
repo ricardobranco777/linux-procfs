@@ -44,31 +44,6 @@ def sorted_alnum(list_):
     return list_
 
 
-class Property:
-    """
-    Simple cached-property class decorator
-    """
-    def __init__(self, fget=None):
-        self.fget = fget
-        self.name = fget.__name__
-        self.lock = threading.RLock()
-
-    def __set_name__(self, owner, name):
-        self.name = name
-
-    def __get__(self, obj, objtype=None):
-        if obj is None:
-            return self
-        if self.name not in obj:
-            with self.lock:
-                if self.name not in obj:
-                    obj[self.name] = self.fget(obj)
-        return obj[self.name]
-
-    def __set__(self, obj, value):
-        raise AttributeError
-
-
 class Singleton:    # pylint: disable=no-member
     """
     Singleton decorator to avoid having multiple objects handling the same args

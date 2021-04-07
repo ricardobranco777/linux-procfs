@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, mock_open, PropertyMock
+from unittest.mock import patch, mock_open
 import gc
 import json
 import stat
@@ -7,7 +7,7 @@ import sys
 from collections import namedtuple
 
 from _restartable.utils import sorted_alnum, try_int, CustomJSONEncoder, FSDict
-from _restartable.utils import AttrDict, Property, Singleton, IPAddr, Time, Uid, Gid, Pathname
+from _restartable.utils import AttrDict, Singleton, IPAddr, Time, Uid, Gid, Pathname
 
 
 # pylint: disable=line-too-long
@@ -137,32 +137,6 @@ class Test_utils(unittest.TestCase):
         gc.collect()
         a = A(1)
         self.assertNotEqual(id(a), id_a)
-
-    def test_Property(self):
-
-        class A(AttrDict):
-            value = 777
-
-            @Property
-            def a(self):
-                return self.value
-
-            @Property
-            def b(self):
-                return -self.a  # pylint: disable=invalid-unary-operand-type
-
-        a = A()
-        self.assertIsInstance(a, A)
-        self.assertEqual(a.a, 777)
-        self.assertIs(a.b, a['b'])
-        self.assertEqual(a.b, -777)
-        with patch.object(A, attribute='a', new_callable=PropertyMock, return_value=888) as mock_a:
-            self.assertEqual(a.a, 888)
-            mock_a.assert_called_once_with()
-        with patch.object(A, attribute='b', new_callable=PropertyMock, return_value=-888) as mock_a:
-            a = A()
-            self.assertEqual(a.b, -888)
-            mock_a.assert_called_once_with()
 
     def test_CustomJSONEncoder(self):
         d = {'time': Time(0.0), 'uid': Uid(0), 'gid': Gid(0), 'ip': IPAddr('0' * 8), 'path': Pathname("/etc")}

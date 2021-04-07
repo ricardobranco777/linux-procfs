@@ -11,7 +11,7 @@ import os
 import re
 from itertools import zip_longest
 
-from _restartable.utils import AttrDict, FSDict, Property, IPAddr, Time, Uid, Gid, Pathname, try_int
+from _restartable.utils import AttrDict, FSDict, IPAddr, Time, Uid, Gid, Pathname, try_int
 
 
 class _Mixin:
@@ -95,8 +95,7 @@ class ProcNet(FSDict):
             keys.split()[0][:-1]: AttrDict(zip(keys.split()[1:], map(int, vals.split()[1:])))
             for keys, vals in zip(headers, values)})
 
-    @Property
-    def dev(self):
+    def _dev(self):
         """
         Parse /proc/net/dev
         """
@@ -109,8 +108,7 @@ class ProcNet(FSDict):
             for _ in lines
             for iface, *values in [_.split()]})
 
-    @Property
-    def dev_mcast(self):
+    def _dev_mcast(self):
         """
         Parse /proc/net/dev_mcast
         """
@@ -119,22 +117,19 @@ class ProcNet(FSDict):
             lines = file.read().splitlines()
         return [AttrDict(zip(fields, _.split())) for _ in lines]
 
-    @Property
-    def netstat(self):
+    def _netstat(self):
         """
         Parse /proc/net/netstat
         """
         return self._parser1("net/netstat")
 
-    @Property
-    def snmp(self):
+    def _snmp(self):
         """
         Parse /proc/net/snmp
         """
         return self._parser1("net/snmp")
 
-    @Property
-    def snmp6(self):
+    def _snmp6(self):
         """
         Parse /proc/net/snmp6
         """
@@ -144,8 +139,7 @@ class ProcNet(FSDict):
             k: int(v) for _ in lines
             for k, v in [_.split()]})
 
-    @Property
-    def ipv6_route(self):
+    def _ipv6_route(self):
         """
         Parse /proc/net/ipv6_route
         """
@@ -164,8 +158,7 @@ class ProcNet(FSDict):
                 for k in ('dst_prefixlen', 'src_prefixlen', 'metric', 'refcnt', 'usecnt', 'flags')})
         return entries
 
-    @Property
-    def route(self):
+    def _route(self):
         """
         Parse /proc/net/route
         """
@@ -176,8 +169,7 @@ class ProcNet(FSDict):
             entry.update({k: IPAddr(entry[k]) for k in ('Destination', 'Gateway', 'Mask')})
         return entries
 
-    @Property
-    def unix(self):
+    def _unix(self):
         """
         Parse /proc/net/unix
         """
@@ -198,19 +190,18 @@ class ProcNet(FSDict):
                 'ipv6_route', 'netstat', 'rarp', 'raw', 'raw6',
                 'route', 'snmp', 'snmp6', 'tcp', 'tcp6',
                 'udp', 'udp6', 'udplite', 'udplite6', 'unix'}:
-            return getattr(self, path)
+            func = getattr(self, "_%s" % path)
+            return func()
         return super().__missing__(os.path.join("net", path))
 
 
 for proto in ('arp', 'rarp', 'icmp', 'icmp6', 'raw', 'raw6',
               'tcp', 'tcp6', 'udp', 'udp6', 'udplite', 'udplite6'):
-    @Property
     def handler(self, *, protocol=proto):
         if protocol in {'arp', 'rarp'}:
             return self._xarp("net/%s" % protocol)  # pylint: disable=protected-access
         return self._proto("net/%s" % protocol)  # pylint: disable=protected-access
-    setattr(ProcNet, proto, handler)
-    handler.__set_name__(ProcNet, proto)
+    setattr(ProcNet, "_%s" % proto, handler)
 
 
 class Proc(FSDict, _Mixin):
@@ -245,8 +236,7 @@ class Proc(FSDict, _Mixin):
                     pass
         return tasks
 
-    @Property
-    def config(self):
+    def _config(self):
         """
         Parses /proc/config.gz and returns an AttrDict
         If /proc/config.gz doesn't exist, try /boot or /lib/modules/
@@ -274,8 +264,7 @@ class Proc(FSDict, _Mixin):
             return None
         return AttrDict(_.split('=') for _ in lines if _.startswith("CONFIG_"))
 
-    @Property
-    def cgroups(self):
+    def _cgroups(self):
         """
         Parses /proc/cgroup and returns an AttrDict
         """
@@ -286,16 +275,14 @@ class Proc(FSDict, _Mixin):
             k: AttrDict(zip(keys, map(int, values))) for _ in lines
             for k, *values in [_.split()]})
 
-    @Property
-    def cmdline(self):
+    def _cmdline(self):
         """
         Parses /proc/cmdline and returns a list
         """
         with open("cmdline", opener=self._opener) as file:
             return file.read().strip()
 
-    @Property
-    def cpuinfo(self):
+    def _cpuinfo(self):
         """
         Parses /proc/cpuinfo and returns a list of AttrDict's
         """
@@ -309,8 +296,7 @@ class Proc(FSDict, _Mixin):
             entry.flags = set(entry.flags.split())
         return entries
 
-    @Property
-    def crypto(self):
+    def _crypto(self):
         """
         Parses /proc/crypto and returns an AttrDict
         """
@@ -323,8 +309,7 @@ class Proc(FSDict, _Mixin):
             for item in info
             for line1, *lines in [item.splitlines()]})
 
-    @Property
-    def locks(self):
+    def _locks(self):
         """
         Parses /proc/locks and returns a list of AttrDict's
         """
@@ -333,8 +318,7 @@ class Proc(FSDict, _Mixin):
             data = file.read()
         return [AttrDict(zip(fields, _.replace(':', ' ').split()[1:])) for _ in data.splitlines()]
 
-    @Property
-    def meminfo(self):
+    def _meminfo(self):
         """
         Parses /proc/meminfo and returns an AttrDict
         """
@@ -342,8 +326,7 @@ class Proc(FSDict, _Mixin):
             lines = file.read().replace('kB\n', '\n').splitlines()
         return AttrDict({k: int(v.strip()) for k, v in [_.split(':') for _ in lines]})
 
-    @Property
-    def mounts(self):
+    def _mounts(self):
         """
         Parses /proc/mounts and returns a list of AttrDict's
         """
@@ -351,8 +334,7 @@ class Proc(FSDict, _Mixin):
         with ProcPid(dir_fd=self._dir_fd) as proc_self:
             return proc_self.mounts
 
-    @Property
-    def swaps(self):
+    def _swaps(self):
         """
         Parses /proc/swaps and returns a list of AttrDict's
         """
@@ -363,8 +345,7 @@ class Proc(FSDict, _Mixin):
             entry.update(Filename=Pathname(entry.Filename))
         return entries
 
-    @Property
-    def vmstat(self):
+    def _vmstat(self):
         """
         Parses /proc/vmstat and returns an AttrDict
         """
@@ -391,7 +372,8 @@ class Proc(FSDict, _Mixin):
         """
         if path in {"config", "cgroups", "cmdline", "cpuinfo", "crypto",
                     "locks", "meminfo", "mounts", "swaps", "vmstat"}:
-            return getattr(self, path)
+            func = getattr(self, "_%s" % path)
+            return func()
         if path == "self":
             return ProcPid(dir_fd=self._dir_fd)
         if path == "net":
@@ -426,8 +408,7 @@ class ProcPid(FSDict, _Mixin):
         return "%s(pid=%s, proc=%s)" % (
             type(self).__name__, self.pid, self._proc)
 
-    @Property
-    def cmdline(self):
+    def _cmdline(self):
         """
         Parses /proc/<pid>/cmdline and returns a list
         """
@@ -439,8 +420,7 @@ class ProcPid(FSDict, _Mixin):
             return data.rstrip('\0').split('\0')
         return [data]
 
-    @Property
-    def comm(self):  # pylint: disable=method-hidden # https://github.com/PyCQA/pylint/issues/414
+    def _comm(self):  # pylint: disable=method-hidden # https://github.com/PyCQA/pylint/issues/414
         """
         Parses /proc/comm
         """
@@ -449,8 +429,7 @@ class ProcPid(FSDict, _Mixin):
         # Strip trailing newline
         return data[:-1]
 
-    @Property
-    def environ(self):
+    def _environ(self):
         """
         Parses /proc/<pid>/environ and returns an AttrDict
         """
@@ -461,8 +440,7 @@ class ProcPid(FSDict, _Mixin):
         except (UnicodeDecodeError, ValueError):
             return data
 
-    @Property
-    def io(self):
+    def _io(self):
         """
         Parses /proc/<pid>/io and returns an AttrDict
         """
@@ -470,8 +448,7 @@ class ProcPid(FSDict, _Mixin):
             lines = file.read().splitlines()
         return AttrDict({k: int(v) for k, v in [_.split(': ') for _ in lines]})
 
-    @Property
-    def limits(self):
+    def _limits(self):
         """
         Parses /proc/<pid>/limits and returns an AttrDict
         """
@@ -502,8 +479,7 @@ class ProcPid(FSDict, _Mixin):
             fields[k]: AttrDict(zip(('soft', 'hard'), map(int, v)))
             for (k, *v) in data})
 
-    @Property
-    def maps(self):
+    def _maps(self):
         """
         Parses /proc/<pid>/maps and returns a list of AttrDict's
         """
@@ -525,8 +501,7 @@ class ProcPid(FSDict, _Mixin):
             entry.update(pathname=Pathname(pathname))
         return entries
 
-    @Property
-    def mounts(self):
+    def _mounts(self):
         """
         Parses /proc/<pid>/mounts and returns a list of AttrDict's
         """
@@ -544,8 +519,7 @@ class ProcPid(FSDict, _Mixin):
                     for k, *v in [_.split('=', 1) for _ in entry.mntops.split(',')]}))
         return entries
 
-    @Property
-    def mountinfo(self):
+    def _mountinfo(self):
         """
         Parses /proc/<pid>/mountinfo and returns a list of AttrDict's
         """
@@ -568,8 +542,7 @@ class ProcPid(FSDict, _Mixin):
                     for k, *v in [_.split('=', 1) for _ in entry.super_options.split(',')]}))
         return entries
 
-    @Property
-    def numa_maps(self):   # pylint: disable=star-needs-assignment-target  # Make Pylint happy on Python 3.4
+    def _numa_maps(self):   # pylint: disable=star-needs-assignment-target  # Make Pylint happy on Python 3.4
         """
         Parses /proc/<pid>/numa_maps and returns an AttrDict
         """
@@ -586,8 +559,7 @@ class ProcPid(FSDict, _Mixin):
                 entry[key].update(file=Pathname(entry[key].file))
         return entry
 
-    @Property
-    def smaps(self):
+    def _smaps(self):
         """
         Parses /proc/<pid>/smaps and returns a list of AttrDict's
         """
@@ -603,8 +575,7 @@ class ProcPid(FSDict, _Mixin):
         ]
         return [AttrDict(**a, **b) for a, b in zip(maps, self.maps)]
 
-    @Property
-    def stat(self):
+    def _stat(self):
         """
         Parses /proc/<pid>/stat and returns an AttrDict
         """
@@ -627,8 +598,7 @@ class ProcPid(FSDict, _Mixin):
         info.comm = info.comm.replace("\n", "\\n")
         return info
 
-    @Property
-    def statm(self):
+    def _statm(self):
         """
         Parses /proc/<pid>/statm and returns an AttrDict
         """
@@ -637,8 +607,7 @@ class ProcPid(FSDict, _Mixin):
             data = map(int, file.read().split())
         return AttrDict(zip(fields, data))
 
-    @Property
-    def status(self):
+    def _status(self):
         """
         Parses /proc/<pid>/status and returns an AttrDict
         """
@@ -667,7 +636,8 @@ class ProcPid(FSDict, _Mixin):
         """
         if path in {'cmdline', 'comm', 'environ', 'io', 'limits', 'maps', 'numa_maps',
                     'mountinfo', 'mounts', 'smaps', 'stat', 'statm', 'status'}:
-            return getattr(self, path)
+            func = getattr(self, "_%s" % path)
+            return func()
         if path in {'fd', 'map_files', 'task'}:
             return self._lsdir(path)
         if path == "net":

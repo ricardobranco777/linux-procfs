@@ -1,6 +1,6 @@
 import os
 import unittest
-from unittest.mock import patch, mock_open, PropertyMock
+from unittest.mock import patch, mock_open
 from collections import namedtuple
 
 from _restartable.procfs import Proc, ProcNet, ProcPid
@@ -280,7 +280,7 @@ class Test_ProcPid(unittest.TestCase):
 
     @patch('builtins.open', mock_open(read_data="560646741000-560646745000 r--p 00000000 fe:01 7078353                    /usr/bin/cat\nSize:                 16 kB\nKernelPageSize:        4 kB\n"))
     def test_smaps(self):
-        with patch('_restartable.procfs.ProcPid.maps', new_callable=PropertyMock) as mock_maps:
+        with patch('_restartable.procfs.ProcPid._maps') as mock_maps:
             mock_maps.return_value = [AttrDict({'address': '560646741000-560646745000', 'perms': 'r--p', 'offset': '00000000', 'dev': 'fe:01', 'inode': '7078353', 'pathname': '/usr/bin/cat'})]
             with ProcPid() as p:
                 self.assertIsInstance(p.smaps[0], AttrDict)
@@ -292,6 +292,7 @@ class Test_ProcPid(unittest.TestCase):
                 del p.smaps
                 self.assertIs(p.smaps, p['smaps'])
                 del p['smaps']
+                del p['maps']
                 self.assertEqual(p.data, {})
 
     def test_map_files(self):
