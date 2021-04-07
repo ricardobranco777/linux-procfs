@@ -661,8 +661,8 @@ class ProcPid(FSDict, _Mixin):
         """
         Creates dynamic keys for elements in /proc/<pid>
         """
-        if path in {'cmdline', 'comm', 'environ', 'io', 'limits', 'maps',
-                    'numa_maps', 'mounts', 'smaps', 'stat', 'statm', 'status'}:
+        if path in {'cmdline', 'comm', 'environ', 'io', 'limits', 'maps', 'numa_maps',
+                    'mountinfo', 'mounts', 'smaps', 'stat', 'statm', 'status'}:
             return getattr(self, path)
         if path in {'fd', 'map_files', 'task'}:
             return self._lsdir(path)
