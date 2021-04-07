@@ -1,13 +1,12 @@
 import unittest
 from unittest.mock import patch, mock_open
-import gc
 import json
 import stat
 import sys
 from collections import namedtuple
 
 from _restartable.utils import sorted_alnum, try_int, CustomJSONEncoder, FSDict
-from _restartable.utils import AttrDict, Singleton, IPAddr, Time, Uid, Gid, Pathname
+from _restartable.utils import AttrDict, IPAddr, Time, Uid, Gid, Pathname
 
 
 # pylint: disable=line-too-long
@@ -111,32 +110,6 @@ class Test_utils(unittest.TestCase):
             self.assertEqual(fs.file, "data")
             self.assertEqual(fs.symlink, "file")
             self.assertIsInstance(fs.dir, FSDict)
-
-    def test_Singleton(self):
-
-        @Singleton
-        class A:
-            def __init__(self, *args, **kwargs):
-                pass
-
-        @Singleton
-        class B:
-            def __init__(self, *args, **kwargs):
-                pass
-
-        a = A(1)
-        self.assertIsInstance(a, A)
-        a_ = A(1)
-        a2 = A(2)
-        b = B(1)
-        self.assertIs(a, a_)
-        self.assertIsNot(a, a2)
-        self.assertIsNot(a, b)
-        id_a = id(a)
-        del a, a_
-        gc.collect()
-        a = A(1)
-        self.assertNotEqual(id(a), id_a)
 
     def test_CustomJSONEncoder(self):
         d = {'time': Time(0.0), 'uid': Uid(0), 'gid': Gid(0), 'ip': IPAddr('0' * 8), 'path': Pathname("/etc")}

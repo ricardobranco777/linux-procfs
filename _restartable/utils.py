@@ -8,12 +8,10 @@ Module for AttrDict
 import json
 import os
 import stat
-import threading
 from collections import UserDict, UserString
 from datetime import datetime
 from ipaddress import ip_address, IPv4Address, IPv6Address
 from socket import htonl
-from weakref import WeakValueDictionary
 from pwd import getpwuid
 from grp import getgrgid
 from sys import byteorder
@@ -44,36 +42,6 @@ def sorted_alnum(list_):
     return list_
 
 
-class Singleton:    # pylint: disable=no-member
-    """
-    Singleton decorator to avoid having multiple objects handling the same args
-    """
-    def __new__(cls, klass):
-        if issubclass(klass, int):
-            dict_ = dict()
-        else:
-            # We must use WeakValueDictionary() to let the instances be garbage-collected
-            dict_ = WeakValueDictionary()
-        _dict = dict(cls.__dict__, **{'cls': klass, 'instances': dict_})
-        singleton = type(klass.__name__, cls.__bases__, _dict)
-        obj = super().__new__(singleton)
-        obj.lock = threading.RLock()
-        return obj
-
-    def __instancecheck__(self, other):
-        return isinstance(other, self.cls)
-
-    def __call__(self, *args, **kwargs):
-        key = (args, frozenset(kwargs.items()))
-        if key not in self.instances:
-            with self.lock:
-                if key not in self.instances:
-                    instance = self.cls.__call__(*args, **kwargs)
-                    self.instances[key] = instance
-        return self.instances[key]
-
-
-@Singleton
 class Uid(int):
     """
     Class to hold user ID's
@@ -93,7 +61,6 @@ class Uid(int):
         return self._name
 
 
-@Singleton
 class Gid(int):
     """
     Class to hold user ID's
@@ -124,7 +91,6 @@ class Time(str):
         return obj
 
 
-@Singleton
 class IPAddr(str):
     """
     Class for IPv4/6 address objects
