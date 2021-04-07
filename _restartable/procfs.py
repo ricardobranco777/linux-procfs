@@ -199,8 +199,8 @@ for proto in ('arp', 'rarp', 'icmp', 'icmp6', 'raw', 'raw6',
               'tcp', 'tcp6', 'udp', 'udp6', 'udplite', 'udplite6'):
     def handler(self, *, protocol=proto):
         if protocol in {'arp', 'rarp'}:
-            return self._xarp("net/%s" % protocol)  # pylint: disable=protected-access
-        return self._proto("net/%s" % protocol)  # pylint: disable=protected-access
+            return self._xarp(os.path.join("net", protocol))  # pylint: disable=protected-access
+        return self._proto(os.path.join("net", protocol))  # pylint: disable=protected-access
     setattr(ProcNet, "_%s" % proto, handler)
 
 
@@ -497,7 +497,7 @@ class ProcPid(FSDict, _Mixin):
             # So let's readlink() the address in the map_files directory
             pathname = entry.pathname
             if pathname and '\\012' in pathname:
-                pathname = os.readlink("map_files/%s" % entry.address, dir_fd=self._dir_fd)
+                pathname = os.readlink(os.path.join("map_files", entry.address), dir_fd=self._dir_fd)
             entry.update(pathname=Pathname(pathname))
         return entries
 
