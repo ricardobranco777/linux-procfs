@@ -5,7 +5,6 @@ import json
 import stat
 import sys
 from collections import namedtuple
-from functools import partialmethod
 
 from _restartable.utils import sorted_alnum, try_int, CustomJSONEncoder, FSDict
 from _restartable.utils import AttrDict, Property, Singleton, IPAddr, Time, Uid, Gid, Pathname
@@ -142,17 +141,15 @@ class Test_utils(unittest.TestCase):
     def test_Property(self):
 
         class A(AttrDict):
-            def __new__(cls):
-                setattr(cls, 'a', Property(partialmethod(cls._a, 777), name='a'))
-                return super().__new__(cls)
+            value = 777
 
-            def _a(self, value):
-                self['a'] = value
-                return self['a']
+            @Property
+            def a(self):
+                return self.value
 
             @Property
             def b(self):
-                return -self.a
+                return -self.a  # pylint: disable=invalid-unary-operand-type
 
         a = A()
         self.assertIsInstance(a, A)

@@ -46,11 +46,11 @@ def sorted_alnum(list_):
 
 class Property:
     """
-    Simple cached-property class decorator that works with partialmethod
+    Simple cached-property class decorator
     """
-    def __init__(self, fget=None, name=None):
+    def __init__(self, fget=None):
         self.fget = fget
-        self.name = name or fget.__name__
+        self.name = fget.__name__
         self.lock = threading.RLock()
 
     def __set_name__(self, owner, name):
@@ -62,10 +62,7 @@ class Property:
         if self.name not in obj:
             with self.lock:
                 if self.name not in obj:
-                    if callable(self.fget):
-                        obj[self.name] = self.fget(obj)
-                    else:   # partialmethod
-                        obj[self.name] = self.fget.func(obj, *self.fget.args, **self.fget.keywords)
+                    obj[self.name] = self.fget(obj)
         return obj[self.name]
 
     def __set__(self, obj, value):
