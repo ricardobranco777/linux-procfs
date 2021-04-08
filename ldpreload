@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+"""
+Show processes running with LD_* variables set
+"""
+
+import os
+import sys
+
+from _restartable.procfs import Proc, ProcPid
+
+
+def print_info(proc, lines):
+    "Print info"
+    print("{:<8} {:<16} {}".format(
+        proc.pid, os.path.basename(proc.cmdline[0]), "\n".join(lines)))
+
+
+def main():
+    "Main"
+    for pid in Proc().pids():
+        with ProcPid(pid) as proc:
+            try:
+                environ = proc.environ
+            except OSError:
+                continue
+            if isinstance(environ, bytes):
+                continue
+            check = ["{}={}".format(k, environ[k]) for k in environ if k.startswith("LD_")]
+            if check:
+                print_info(proc, check)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(1)
