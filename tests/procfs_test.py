@@ -240,8 +240,7 @@ class Test_ProcPid(unittest.TestCase):
     @patch('builtins.open', mock_open(read_data=b'\xff\x00'))
     def test_environ2(self):
         with ProcPid() as p:
-            self.assertIsInstance(p.environ, bytes)
-            self.assertEqual(p.environ, b'\xff\x00')
+            self.assertIsNone(p.environ)
 
     @patch('builtins.open', mock_open(read_data="a: 1\nb: 2\n"))
     def test_io(self):

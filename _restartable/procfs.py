@@ -438,7 +438,7 @@ class ProcPid(FSDict, _Mixin):
         try:
             return AttrDict([_.split('=', 1) for _ in data.decode('utf-8')[:-1].split('\0')])
         except (UnicodeDecodeError, ValueError):
-            return data
+            return None
 
     def _io(self):
         """

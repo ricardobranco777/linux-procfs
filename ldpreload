@@ -23,7 +23,7 @@ def main():
                 environ = proc.environ
             except OSError:
                 continue
-            if isinstance(environ, bytes):
+            if not environ:
                 continue
             check = ["{}={}".format(k, environ[k]) for k in environ if k.startswith("LD_")]
             if check:
