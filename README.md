@@ -1,7 +1,7 @@
 # restartable
 List running processes using files deleted by recent upgrades
 
-[![Build Status](https://travis-ci.org/ricardobranco777/restartable.svg?branch=master)](https://travis-ci.org/ricardobranco777/restartable)
+[![Build Status](https://travis-ci.com/ricardobranco777/restartable.svg?branch=master)](https://travis-ci.org/ricardobranco777/restartable)
 
 When upgrading packages, the package manager won't restart services or programs that depend on some updated library, for obvious reasons.  This has security implications in the case of outdated libraries still in use.
 
