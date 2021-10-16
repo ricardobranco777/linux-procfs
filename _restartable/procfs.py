@@ -56,7 +56,7 @@ class ProcNet(FSDict):
         """
         Parse /proc/net/{arp,rarp}
         """
-        with open(path, opener=self._opener) as file:
+        with open(path, opener=self._opener, encoding="utf-8") as file:
             header, *lines = file.read().splitlines()
         keys = [_.strip().replace(' ', '_') for _ in header.split('  ') if _]
         entries = [AttrDict(zip(keys, _.split())) for _ in lines]
@@ -72,7 +72,7 @@ class ProcNet(FSDict):
             'local_address', 'local_port', 'remote_address', 'remote_port',
             'st', 'tx_queue', 'rx_queue', 'tr', 'tm_when', 'retrnsmt', 'uid',
             'timeout', 'inode', 'ref', 'pointer', 'drops')
-        with open(path, opener=self._opener) as file:
+        with open(path, opener=self._opener, encoding="utf-8") as file:
             _, *lines = file.read().splitlines()
         entries = [AttrDict(zip(fields, _.replace(':', ' ').split()[1:])) for _ in lines]
         for entry in entries:
@@ -88,7 +88,7 @@ class ProcNet(FSDict):
         """
         Parse /proc/net/{netstat,snmp}
         """
-        with open(path, opener=self._opener) as file:
+        with open(path, opener=self._opener, encoding="utf-8") as file:
             lines = file.read().splitlines()
         headers, values = lines[::2], lines[1::2]
         return AttrDict({
@@ -99,7 +99,7 @@ class ProcNet(FSDict):
         """
         Parse /proc/net/dev
         """
-        with open("net/dev", opener=self._opener) as file:
+        with open("net/dev", opener=self._opener, encoding="utf-8") as file:
             _, line2, *lines = file.read().splitlines()
         rx, tx = line2.split('|')[1:]
         keys = ['RX_%s' % _ for _ in rx.split()] + ['TX_%s' % _ for _ in tx.split()]
@@ -113,7 +113,7 @@ class ProcNet(FSDict):
         Parse /proc/net/dev_mcast
         """
         fields = ('index', 'interface', 'dmi_u', 'dmi_g', 'dmi_address')
-        with open("net/dev_mcast", opener=self._opener) as file:
+        with open("net/dev_mcast", opener=self._opener, encoding="utf-8") as file:
             lines = file.read().splitlines()
         return [AttrDict(zip(fields, _.split())) for _ in lines]
 
@@ -133,7 +133,7 @@ class ProcNet(FSDict):
         """
         Parse /proc/net/snmp6
         """
-        with open("net/snmp6", opener=self._opener) as file:
+        with open("net/snmp6", opener=self._opener, encoding="utf-8") as file:
             lines = file.read().splitlines()
         return AttrDict({
             k: int(v) for _ in lines
@@ -146,7 +146,7 @@ class ProcNet(FSDict):
         fields = (
             'dst_network', 'dst_prefixlen', 'src_network', 'src_prefixlen',
             'next_hop', 'metric', 'refcnt', 'usecnt', 'flags', 'device')
-        with open("net/ipv6_route", opener=self._opener) as file:
+        with open("net/ipv6_route", opener=self._opener, encoding="utf-8") as file:
             lines = file.read().splitlines()
         entries = [AttrDict(zip(fields, _.split())) for _ in lines]
         for entry in entries:
@@ -162,7 +162,7 @@ class ProcNet(FSDict):
         """
         Parse /proc/net/route
         """
-        with open("net/route", opener=self._opener) as file:
+        with open("net/route", opener=self._opener, encoding="utf-8") as file:
             header, *lines = file.read().splitlines()
         entries = [AttrDict(zip(header.split(), _.split())) for _ in lines]
         for entry in entries:
@@ -173,7 +173,7 @@ class ProcNet(FSDict):
         """
         Parse /proc/net/unix
         """
-        with open("net/unix", opener=self._opener) as file:
+        with open("net/unix", opener=self._opener, encoding="utf-8") as file:
             keys, *lines = file.read().splitlines()
         # Ignore "Num"
         entries = [AttrDict(zip_longest(keys.split()[1:], _.split(maxsplit=7)[1:])) for _ in lines]
@@ -197,7 +197,7 @@ class ProcNet(FSDict):
 
 for proto in ('arp', 'rarp', 'icmp', 'icmp6', 'raw', 'raw6',
               'tcp', 'tcp6', 'udp', 'udp6', 'udplite', 'udplite6'):
-    def handler(self, *, protocol=proto):
+    def handler(self, *, protocol=proto):  # pylint: disable=cell-var-from-loop
         if protocol in {'arp', 'rarp'}:
             return self._xarp(os.path.join("net", protocol))  # pylint: disable=protected-access
         return self._proto(os.path.join("net", protocol))  # pylint: disable=protected-access
@@ -257,7 +257,7 @@ class Proc(FSDict, _Mixin):
                     with gzip.open(f) as file:
                         lines = file.read().decode('utf-8').splitlines()
             else:
-                with open(path) as file:
+                with open(path, encoding="utf-8") as file:
                     lines = file.read().splitlines()
             break
         if lines is None:
@@ -268,7 +268,7 @@ class Proc(FSDict, _Mixin):
         """
         Parses /proc/cgroup and returns an AttrDict
         """
-        with open("cgroups", opener=self._opener) as file:
+        with open("cgroups", opener=self._opener, encoding="utf-8") as file:
             header, *lines = file.read().splitlines()
         keys = header.split()[1:]
         return AttrDict({
@@ -279,14 +279,14 @@ class Proc(FSDict, _Mixin):
         """
         Parses /proc/cmdline and returns a list
         """
-        with open("cmdline", opener=self._opener) as file:
+        with open("cmdline", opener=self._opener, encoding="utf-8") as file:
             return file.read().strip()
 
     def _cpuinfo(self):
         """
         Parses /proc/cpuinfo and returns a list of AttrDict's
         """
-        with open("cpuinfo", opener=self._opener) as file:
+        with open("cpuinfo", opener=self._opener, encoding="utf-8") as file:
             cpus = file.read()[:-1].split('\n\n')
         entries = [
             AttrDict([map(str.strip, _.split(':')) for _ in cpu.splitlines()])
@@ -300,7 +300,7 @@ class Proc(FSDict, _Mixin):
         """
         Parses /proc/crypto and returns an AttrDict
         """
-        with open("crypto", opener=self._opener) as file:
+        with open("crypto", opener=self._opener, encoding="utf-8") as file:
             info = file.read().strip().split('\n\n')
         return AttrDict({
             line1.split(':')[1].strip():
@@ -314,7 +314,7 @@ class Proc(FSDict, _Mixin):
         Parses /proc/locks and returns a list of AttrDict's
         """
         fields = ('type', 'xtype', 'mode', 'pid', 'major', 'minor', 'inode', 'start', 'end')
-        with open("locks", opener=self._opener) as file:
+        with open("locks", opener=self._opener, encoding="utf-8") as file:
             data = file.read()
         return [AttrDict(zip(fields, _.replace(':', ' ').split()[1:])) for _ in data.splitlines()]
 
@@ -322,7 +322,7 @@ class Proc(FSDict, _Mixin):
         """
         Parses /proc/meminfo and returns an AttrDict
         """
-        with open("meminfo", opener=self._opener) as file:
+        with open("meminfo", opener=self._opener, encoding="utf-8") as file:
             lines = file.read().replace('kB\n', '\n').splitlines()
         return AttrDict({k: int(v.strip()) for k, v in [_.split(':') for _ in lines]})
 
@@ -338,7 +338,7 @@ class Proc(FSDict, _Mixin):
         """
         Parses /proc/swaps and returns a list of AttrDict's
         """
-        with open("swaps", opener=self._opener) as file:
+        with open("swaps", opener=self._opener, encoding="utf-8") as file:
             keys, *values = file.read().splitlines()
         entries = [AttrDict(zip(keys.split(), _.rsplit(maxsplit=5))) for _ in values]
         for entry in entries:
@@ -349,7 +349,7 @@ class Proc(FSDict, _Mixin):
         """
         Parses /proc/vmstat and returns an AttrDict
         """
-        with open("vmstat", opener=self._opener) as file:
+        with open("vmstat", opener=self._opener, encoding="utf-8") as file:
             lines = file.read().splitlines()
         return AttrDict({k: int(v) for k, v in [_.split() for _ in lines]})
 
@@ -357,7 +357,7 @@ class Proc(FSDict, _Mixin):
         """
         Parses /proc/sysvipc/{msg,sem,shm} and returns a list of AttrDict's
         """
-        with open(os.path.join("sysvipc", path), opener=self._opener) as file:
+        with open(os.path.join("sysvipc", path), opener=self._opener, encoding="utf-8") as file:
             keys, *values = file.read().splitlines()
         entries = [AttrDict(zip(keys.split(), _.split())) for _ in values]
         for entry in entries:
@@ -412,7 +412,7 @@ class ProcPid(FSDict, _Mixin):
         """
         Parses /proc/<pid>/cmdline and returns a list
         """
-        with open("cmdline", opener=self._opener) as file:
+        with open("cmdline", opener=self._opener, encoding="utf-8") as file:
             data = file.read()
         # Escape newlines
         data = data.replace("\n", "\\n")
@@ -424,7 +424,7 @@ class ProcPid(FSDict, _Mixin):
         """
         Parses /proc/comm
         """
-        with open("comm", opener=self._opener) as file:
+        with open("comm", opener=self._opener, encoding="utf-8") as file:
             data = file.read()
         # Strip trailing newline
         return data[:-1]
@@ -444,7 +444,7 @@ class ProcPid(FSDict, _Mixin):
         """
         Parses /proc/<pid>/io and returns an AttrDict
         """
-        with open("io", opener=self._opener) as file:
+        with open("io", opener=self._opener, encoding="utf-8") as file:
             lines = file.read().splitlines()
         return AttrDict({k: int(v) for k, v in [_.split(': ') for _ in lines]})
 
@@ -470,7 +470,7 @@ class ProcPid(FSDict, _Mixin):
             'Max realtime priority': 'rtprio',
             'Max realtime timeout': 'rttime',
         }
-        with open("limits", opener=self._opener) as file:
+        with open("limits", opener=self._opener, encoding="utf-8") as file:
             data = re.findall(
                 r'^(.*?)\s{2,}(\S+)\s{2,}(\S+)\s{2,}',
                 file.read().replace('unlimited', '-1'),
@@ -484,7 +484,7 @@ class ProcPid(FSDict, _Mixin):
         Parses /proc/<pid>/maps and returns a list of AttrDict's
         """
         fields = ('address', 'perms', 'offset', 'dev', 'inode', 'pathname')
-        with open("maps", opener=self._opener) as file:
+        with open("maps", opener=self._opener, encoding="utf-8") as file:
             lines = file.read().splitlines()
         entries = [
             AttrDict(zip_longest(fields, _.split(maxsplit=5))) for _ in lines]
@@ -506,7 +506,7 @@ class ProcPid(FSDict, _Mixin):
         Parses /proc/<pid>/mounts and returns a list of AttrDict's
         """
         fields = ('spec', 'file', 'vfstype', 'mntops', 'freq', 'passno')
-        with open("mounts", opener=self._opener) as file:
+        with open("mounts", opener=self._opener, encoding="utf-8") as file:
             lines = file.read().splitlines()
         entries = [
             AttrDict(zip(fields, re.findall(r'^(\S+) (.*?) (\S+) (\S+) (\d+) (\d+)$', _)[0]))
@@ -526,7 +526,7 @@ class ProcPid(FSDict, _Mixin):
         fields = (
             'mnt_id', 'parent_id', 'major', 'minor', 'root', 'mount', 'options',
             'optional', 'fstype', 'source', 'super_options')
-        with open("mountinfo", opener=self._opener) as file:
+        with open("mountinfo", opener=self._opener, encoding="utf-8") as file:
             lines = file.read().splitlines()
         regex = r'(\S+) (\S+) (\d+):(\d+) (\S+) (\S+) (\S+) (.*? - )(\S+) (\S+) (\S+)'
         entries = [AttrDict(zip(fields, re.findall(regex, _)[0])) for _ in lines]
@@ -546,7 +546,7 @@ class ProcPid(FSDict, _Mixin):
         """
         Parses /proc/<pid>/numa_maps and returns an AttrDict
         """
-        with open("numa_maps", opener=self._opener) as file:
+        with open("numa_maps", opener=self._opener, encoding="utf-8") as file:
             lines = file.read().splitlines()
         entry = AttrDict({
             address: AttrDict({
@@ -563,7 +563,7 @@ class ProcPid(FSDict, _Mixin):
         """
         Parses /proc/<pid>/smaps and returns a list of AttrDict's
         """
-        with open("smaps", opener=self._opener) as file:
+        with open("smaps", opener=self._opener, encoding="utf-8") as file:
             lines = file.read().replace('kB\n', '\n').splitlines()
         step = int(len(lines) / len(self.maps))
         maps = [
@@ -589,7 +589,7 @@ class ProcPid(FSDict, _Mixin):
             'start_data end_data start_brk arg_start arg_end env_start env_end '
             'exit_code'
         ).split()
-        with open("stat", opener=self._opener) as file:
+        with open("stat", opener=self._opener, encoding="utf-8") as file:
             data = re.findall(r"\(.*\)|\S+", file.read()[:-1], re.M | re.S)
         info = AttrDict(zip(fields, data))
         # Remove parentheses
@@ -603,7 +603,7 @@ class ProcPid(FSDict, _Mixin):
         Parses /proc/<pid>/statm and returns an AttrDict
         """
         fields = ('size', 'resident', 'shared', 'text', 'lib', 'data', 'dt')
-        with open("statm", opener=self._opener) as file:
+        with open("statm", opener=self._opener, encoding="utf-8") as file:
             data = map(int, file.read().split())
         return AttrDict(zip(fields, data))
 
@@ -612,7 +612,7 @@ class ProcPid(FSDict, _Mixin):
         Parses /proc/<pid>/status and returns an AttrDict
         """
         fields = ('real', 'effective', 'saved_set', 'filesystem')
-        with open("status", opener=self._opener) as file:
+        with open("status", opener=self._opener, encoding="utf-8") as file:
             lines = file.read().splitlines()
         status = AttrDict({
             k: try_int(v)

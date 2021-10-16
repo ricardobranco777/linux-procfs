@@ -205,7 +205,7 @@ class FSDict(AttrDict):
         if stat.S_ISLNK(mode):
             return os.readlink(path, dir_fd=self._dir_fd)
         if stat.S_ISREG(mode):
-            with open(path, opener=self._opener) as file:
+            with open(path, opener=self._opener, encoding="utf-8") as file:
                 return file.read()
         if stat.S_ISDIR(mode):
             return FSDict(path=path, dir_fd=self._dir_fd)
@@ -217,7 +217,7 @@ class CustomJSONEncoder(json.JSONEncoder):
     JSON Encoder for the objects defined here
     Use like this: json.dumps(obj, cls=CustomJSONEncoder)
     """
-    def default(self, obj):     # pylint: disable=method-hidden,arguments-differ
-        if isinstance(obj, (IPAddr, Uid, Gid, Time, AttrDict, Pathname)):
-            return obj.data
-        return json.JSONEncoder.default(self, obj)
+    def default(self, o):
+        if isinstance(o, (IPAddr, Uid, Gid, Time, AttrDict, Pathname)):
+            return o.data
+        return json.JSONEncoder.default(self, o)
