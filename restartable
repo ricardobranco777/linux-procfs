@@ -34,6 +34,7 @@ Options:
 # Ignore deleted files in these directories
 IGNORE = (
     '/dev',
+    '/memfd:',
     '/run',
     '/ ',
 )
