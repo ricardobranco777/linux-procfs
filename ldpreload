@@ -25,7 +25,7 @@ def main():
                 continue
             if not environ:
                 continue
-            check = ["{}={}".format(k, environ[k]) for k in environ if k.startswith("LD_")]
+            check = [f"{k}={environ[k]}" for k in environ if k.startswith("LD_")]
             if check:
                 print_info(proc, check)
 

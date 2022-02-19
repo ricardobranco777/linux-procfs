@@ -50,7 +50,7 @@ class ProcNet(FSDict):
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
-        return "%s()" % type(self).__name__
+        return f"{type(self).__name__}()"
 
     def _xarp(self, path):
         """
@@ -102,7 +102,7 @@ class ProcNet(FSDict):
         with open("net/dev", opener=self._opener, encoding="utf-8") as file:
             _, line2, *lines = file.read().splitlines()
         rx, tx = line2.split('|')[1:]
-        keys = ['RX_%s' % _ for _ in rx.split()] + ['TX_%s' % _ for _ in tx.split()]
+        keys = [f'RX_{_}' for _ in rx.split()] + [f'TX_{_}' for _ in tx.split()]
         return AttrDict({
             iface[:-1]: AttrDict(zip(keys, map(int, values)))
             for _ in lines
@@ -190,7 +190,7 @@ class ProcNet(FSDict):
                 'ipv6_route', 'netstat', 'rarp', 'raw', 'raw6',
                 'route', 'snmp', 'snmp6', 'tcp', 'tcp6',
                 'udp', 'udp6', 'udplite', 'udplite6', 'unix'}:
-            func = getattr(self, "_%s" % path)
+            func = getattr(self, f"_{path}")
             return func()
         return super().__missing__(os.path.join("net", path))
 
@@ -201,7 +201,7 @@ for proto in ('arp', 'rarp', 'icmp', 'icmp6', 'raw', 'raw6',
         if protocol in {'arp', 'rarp'}:
             return self._xarp(os.path.join("net", protocol))  # pylint: disable=protected-access
         return self._proto(os.path.join("net", protocol))  # pylint: disable=protected-access
-    setattr(ProcNet, "_%s" % proto, handler)
+    setattr(ProcNet, f"_{proto}", handler)
 
 
 class Proc(FSDict, _Mixin):
@@ -214,7 +214,7 @@ class Proc(FSDict, _Mixin):
         super().__init__()
 
     def __repr__(self):
-        return "%s(proc=%s)" % (type(self).__name__, self._proc)
+        return f"{type(self).__name__}(proc={self._proc})"
 
     def pids(self):
         """
@@ -244,8 +244,8 @@ class Proc(FSDict, _Mixin):
         lines = None
         paths = [
             "config.gz",
-            "/boot/config-%s" % os.uname().release,
-            "/lib/modules/%s/build/.config" % os.uname().release
+            f"/boot/config-{os.uname().release}",
+            f"/lib/modules/{os.uname().release}/build/.config"
         ]
         for path in paths:
             try:
@@ -372,7 +372,7 @@ class Proc(FSDict, _Mixin):
         """
         if path in {"config", "cgroups", "cmdline", "cpuinfo", "crypto",
                     "locks", "meminfo", "mounts", "swaps", "vmstat"}:
-            func = getattr(self, "_%s" % path)
+            func = getattr(self, f"_{path}")
             return func()
         if path == "self":
             return ProcPid(dir_fd=self._dir_fd)
@@ -393,7 +393,7 @@ class ProcPid(FSDict, _Mixin):
         if pid is None:
             pid = os.getpid()
         elif int(pid) <= 0:
-            raise ValueError("Invalid pid %s" % pid)
+            raise ValueError(f"Invalid pid {pid}")
         self.pid = str(pid)
         if dir_fd is None:
             self._get_dirfd(os.path.join(proc, self.pid))
@@ -405,8 +405,7 @@ class ProcPid(FSDict, _Mixin):
         super().__init__()
 
     def __repr__(self):
-        return "%s(pid=%s, proc=%s)" % (
-            type(self).__name__, self.pid, self._proc)
+        return f"{type(self).__name__}(pid={self.pid}, proc={self._proc}"
 
     def _cmdline(self):
         """
@@ -551,7 +550,7 @@ class ProcPid(FSDict, _Mixin):
         entry = AttrDict({
             address: AttrDict({
                 k: try_int(v[0]) if v else None
-                for k, *v in [_.split('=', 1) for _ in ['policy=%s' % policy] + values]})
+                for k, *v in [_.split('=', 1) for _ in [f'policy={policy}'] + values]})
             for line in lines
             for address, policy, *values in [line.split()]})
         for key in entry:
@@ -636,7 +635,7 @@ class ProcPid(FSDict, _Mixin):
         """
         if path in {'cmdline', 'comm', 'environ', 'io', 'limits', 'maps', 'numa_maps',
                     'mountinfo', 'mounts', 'smaps', 'stat', 'statm', 'status'}:
-            func = getattr(self, "_%s" % path)
+            func = getattr(self, f"_{path}")
             return func()
         if path in {'fd', 'map_files', 'task'}:
             return self._lsdir(path)

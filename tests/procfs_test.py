@@ -363,7 +363,7 @@ class Test_ProcPid(unittest.TestCase):
             del p['statm']
             self.assertEqual(p.data, {})
 
-    @patch('builtins.open', mock_open(read_data=("Name:\tfoobar\nUid:\t0 1 2 3\nGid:\t4 5 6 7\nGroups:\t0\n" + "".join(["%s:\t  %s kB\n" % (s, i) for (i, s) in enumerate(('VmPeak', 'VmSize', 'VmLck', 'VmPin', 'VmHWM', 'VmRSS', 'RssAnon', 'RssFile', 'RssShmem', 'VmData', 'VmStk', 'VmExe', 'VmLib', 'VmPTE', 'VmSwap', 'HugetlbPages'))]))))
+    @patch('builtins.open', mock_open(read_data=("Name:\tfoobar\nUid:\t0 1 2 3\nGid:\t4 5 6 7\nGroups:\t0\n" + "".join([f"{s}:\t  {i} kB\n" for (i, s) in enumerate(('VmPeak', 'VmSize', 'VmLck', 'VmPin', 'VmHWM', 'VmRSS', 'RssAnon', 'RssFile', 'RssShmem', 'VmData', 'VmStk', 'VmExe', 'VmLib', 'VmPTE', 'VmSwap', 'HugetlbPages'))]))))
     def test_status(self):
         with ProcPid() as p:
             self.assertIsInstance(p.status, AttrDict)

@@ -16,7 +16,7 @@ from _restartable.procfs import Proc, ProcPid
 from _restartable import __version__
 
 
-USAGE = """%s [OPTIONS]
+USAGE = f"""{os.path.basename(sys.argv[0])} [OPTIONS]
 
 List running processes using files deleted by recent upgrades
 
@@ -29,7 +29,7 @@ Options:
          show only processes which are associated with a system service.
          Given three times, list the associated system service names only.
     -v, --verbose   Show the complete command line
-""" % os.path.basename(sys.argv[0])
+"""
 
 # Ignore deleted files in these directories
 IGNORE = (
@@ -111,7 +111,7 @@ def print_info(proc, deleted):
             proc.pid, proc.status.PPid, uid, username, service, cmdline))
     if not opts.short:
         for path in sorted(deleted):
-            print("\t%s" % path)
+            print(f"\t{path}")
 
 
 def main():
@@ -129,7 +129,7 @@ def main():
         print("WARN: Run this program as root", file=sys.stderr)
 
     if not os.path.isdir(opts.proc):
-        print("ERROR: %s: No such directory" % opts.proc, file=sys.stderr)
+        print(f"ERROR: {opts.proc}: No such directory", file=sys.stderr)
         sys.exit(1)
 
     if opts.short < 3:
