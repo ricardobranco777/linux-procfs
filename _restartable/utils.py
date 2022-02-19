@@ -146,7 +146,7 @@ class AttrDict(UserDict):
         try:
             return self.__getitem__(attr)
         except KeyError as e:
-            raise AttributeError(e)
+            raise AttributeError(e) from e
 
     def __delattr__(self, attr):
         self.__delitem__(attr)
