@@ -5,8 +5,8 @@ import stat
 import sys
 from collections import namedtuple
 
-from _restartable.utils import sorted_alnum, try_int, CustomJSONEncoder, FSDict
-from _restartable.utils import AttrDict, IPAddr, Time, Uid, Gid, Pathname
+from procfs.utils import sorted_alnum, try_int, CustomJSONEncoder, FSDict
+from procfs.utils import AttrDict, IPAddr, Time, Uid, Gid, Pathname
 
 
 # pylint: disable=line-too-long
@@ -61,24 +61,24 @@ class Test_utils(unittest.TestCase):
         self.assertIsInstance(t, Time)
         self.assertEqual(t, 'Thu Jan  1 00:00:00 1970')
 
-    @patch('_restartable.utils.getpwuid', return_value=namedtuple('_', 'pw_name')('abc'))
+    @patch('procfs.utils.getpwuid', return_value=namedtuple('_', 'pw_name')('abc'))
     def test_Uid(self, *_):
         uid = Uid(777)
         self.assertIsInstance(uid, Uid)
         self.assertEqual(uid.name, 'abc')
 
-    @patch('_restartable.utils.getpwuid', side_effect=KeyError)
+    @patch('procfs.utils.getpwuid', side_effect=KeyError)
     def test_Uid2(self, *_):
         uid = Uid(888)
         self.assertEqual(uid.name, "888")
 
-    @patch('_restartable.utils.getgrgid', return_value=namedtuple('_', 'gr_name')('xyz'))
+    @patch('procfs.utils.getgrgid', return_value=namedtuple('_', 'gr_name')('xyz'))
     def test_Gid(self, *_):
         gid = Gid(777)
         self.assertIsInstance(gid, Gid)
         self.assertEqual(gid.name, 'xyz')
 
-    @patch('_restartable.utils.getpwuid', side_effect=KeyError)
+    @patch('procfs.utils.getpwuid', side_effect=KeyError)
     def test_Gid2(self, *_):
         gid = Gid(888)
         self.assertEqual(gid.name, "888")

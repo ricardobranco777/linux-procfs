@@ -6,7 +6,7 @@ Show processes running with LD_* variables set
 import os
 import sys
 
-from _restartable.procfs import Proc, ProcPid
+from procfs.procfs import Proc, ProcPid
 
 
 def print_info(proc, lines):

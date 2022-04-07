@@ -1,8 +1,8 @@
 SCRIPTS = restartable ldpreload
 
 test:
-	@pylint ${SCRIPTS} _restartable/*.py tests/*.py --disable=line-too-long
-	@flake8 ${SCRIPTS} _restartable/*.py tests/*.py --ignore=E501,W503
+	@pylint ${SCRIPTS} procfs/*.py tests/*.py --disable=line-too-long
+	@flake8 ${SCRIPTS} procfs/*.py tests/*.py --ignore=E501,W503
 	@TZ=UTC LC_ALL=en_US.UTF-8 python3 -m unittest tests/*.py
 	@tests/integration.sh
 

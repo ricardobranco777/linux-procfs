@@ -4,7 +4,7 @@ Setup script
 """
 
 from setuptools import find_packages, setup
-from _restartable import __version__
+from .procfs import __version__
 
 
 def read(path):
@@ -31,7 +31,7 @@ setup(
     author="Ricardo Branco",
     author_email='rbranco@suse.de',
     url='https://github.com/ricardobranco777/restartable',
-    package_dir={'restartable': '_restartable'},
+    package_dir={'restartable': '.procfs'},
     packages=find_packages(),
     include_package_data=True,
     python_requires='>=3.5',

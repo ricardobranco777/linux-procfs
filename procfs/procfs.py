@@ -11,7 +11,7 @@ import os
 import re
 from itertools import zip_longest
 
-from _restartable.utils import AttrDict, FSDict, IPAddr, Time, Uid, Gid, Pathname, try_int
+from .utils import AttrDict, FSDict, IPAddr, Time, Uid, Gid, Pathname, try_int
 
 
 class _Mixin:

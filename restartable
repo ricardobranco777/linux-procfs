@@ -12,8 +12,8 @@ import re
 import sys
 from argparse import ArgumentParser
 
-from _restartable.procfs import Proc, ProcPid
-from _restartable import __version__
+from procfs.procfs import Proc, ProcPid
+from procfs import __version__
 
 
 USAGE = f"""{os.path.basename(sys.argv[0])} [OPTIONS]
