@@ -7,7 +7,7 @@ from procfs.procfs import Proc, ProcNet, ProcPid
 from procfs.utils import AttrDict, FSDict, IPAddr, Uid, Gid, Time
 
 
-# pylint: disable=no-member,unsubscriptable-object,unsupported-delete-operation,no-self-use,line-too-long
+# pylint: disable=no-member,unsubscriptable-object,unsupported-delete-operation,line-too-long
 
 
 # NOTE: Addresses and ports in hexadecimal are stored in host-byte order, so they are all set to zeroes here
