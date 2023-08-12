@@ -1,7 +1,7 @@
 FILES = restartable ldpreload */*.py
 
 .PHONY: all
-all: flake8 pylint test
+all: flake8 pylint test pytest mypy
 
 .PHONY: flake8
 flake8:
@@ -10,6 +10,16 @@ flake8:
 .PHONY: pylint
 pylint:
 	@pylint --disable=line-too-long $(FILES)
+
+.PHONY: pytest
+pytest:
+	@TZ=UTC LC_ALL=en_US.UTF-8 pytest -vv --cov --cov-report term-missing
+
+.PHONY: mypy
+mypy:
+	@mypy */*.py
+	@mypy restartable
+	@mypy ldpreload
 
 .PHONY: test
 test:
