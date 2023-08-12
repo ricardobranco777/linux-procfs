@@ -1,5 +1,7 @@
 ![Build Status](https://github.com/ricardobranco777/linux-procfs/actions/workflows/ci.yml/badge.svg)
 
+[![codecov](https://codecov.io/gh/ricardobranco777/linux-procfs/branch/master/graph/badge.svg)](https://codecov.io/gh/ricardobranco777/linux-procfs)
+
 # linux-procfs
 
 Library to fetch info from `/proc` using the `*at()` system calls.
