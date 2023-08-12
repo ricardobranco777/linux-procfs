@@ -8,6 +8,12 @@ Similar libraries but lacking this functionality:
 - https://github.com/giampaolo/psutil
 - https://github.com/pmuller/procfs
 
+## Installation
+
+Add `https://github.com/ricardobranco777/linux-procfs/archive/master.zip` to `requirements.txt` or run:
+
+`pip install --user https://github.com/ricardobranco777/linux-procfs/archive/master.zip`
+
 ## NOTES
 
   - Tested on Python 3.8+

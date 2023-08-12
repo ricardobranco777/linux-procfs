@@ -198,7 +198,7 @@ class Test_ProcPid(unittest.TestCase):
             self.assertEqual(p.pid, p_.pid)
             self.assertEqual(p.ctime, p_.ctime)
 
-    @patch('os.stat', return_value=namedtuple('_', 'st_ctime')(float(0)))
+    @patch('os.stat', return_value=namedtuple('_', 'st_ctime')(float(0)))  # type: ignore
     def test_ctime(self, *_):
         with ProcPid() as p:
             self.assertIsInstance(p.ctime, Time)
@@ -226,14 +226,15 @@ class Test_ProcPid(unittest.TestCase):
             del p['comm']
             self.assertEqual(p.data, {})
 
+    @patch('builtins.open', mock_open(read_data=b"var=value\0"))
     def test_environ1(self):
         with ProcPid() as p:
             self.assertIsInstance(p.environ, AttrDict)
-            self.assertEqual(p.environ, os.environ)
+            self.assertEqual(p.environ, {"var": "value"})
             self.assertIs(p.environ, p['environ'])
             del p.environ
             self.assertIs(p.environ, p['environ'])
-            self.assertIs(p.environ.PATH, p['environ']['PATH'])
+            self.assertIs(p.environ.var, p['environ']['var'])
             del p['environ']
             self.assertEqual(p.data, {})
 

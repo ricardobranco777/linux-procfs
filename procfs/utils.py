@@ -15,9 +15,10 @@ from socket import htonl
 from pwd import getpwuid
 from grp import getgrgid
 from sys import byteorder
+from typing import List, Optional, Union
 
 
-def try_int(string):
+def try_int(string: str) -> Union[int, str]:
     """
     Return an integer if possible, else string
     """
@@ -30,7 +31,7 @@ def try_int(string):
         return string
 
 
-def sorted_alnum(list_):
+def sorted_alnum(list_: list) -> List[str]:
     """
     Returns a list sorted in-place alphanumerically.
     Useful for directories, like /proc, that contain pids and other files
@@ -46,13 +47,13 @@ class Uid(int):
     """
     Class to hold user ID's
     """
-    def __init__(self, uid):
+    def __init__(self, uid: str):
         super().__init__()
         self.uid = int(uid)
         self._name = ""
 
     @property
-    def name(self):
+    def name(self) -> str:
         if not self._name:
             try:
                 self._name = getpwuid(self.uid).pw_name
@@ -65,13 +66,13 @@ class Gid(int):
     """
     Class to hold user ID's
     """
-    def __init__(self, gid):
+    def __init__(self, gid: str):
         super().__init__()
         self.gid = int(gid)
         self._name = ""
 
     @property
-    def name(self):
+    def name(self) -> str:
         if not self._name:
             try:
                 self._name = getgrgid(self.gid).gr_name
@@ -84,10 +85,10 @@ class Time(str):
     """
     Class for time objects
     """
-    def __new__(cls, arg):
+    def __new__(cls, arg: str):
         dtime = datetime.fromtimestamp(float(arg))
         obj = str.__new__(cls, dtime.ctime())
-        obj.datetime = dtime
+        setattr(obj, "datetime", dtime)
         return obj
 
 
@@ -95,7 +96,7 @@ class IPAddr(str):
     """
     Class for IPv4/6 address objects
     """
-    def __new__(cls, arg, big_endian=True):
+    def __new__(cls, arg: str, big_endian: bool = True):
         try:
             address = ip_address(arg)
         except ValueError:
@@ -116,7 +117,7 @@ class IPAddr(str):
                 else:
                     address = IPv6Address(int(arg, base=16))
         obj = str.__new__(cls, address.compressed)
-        obj.ip_address = address
+        setattr(obj, "ip_address", address)
         return obj
 
 
@@ -124,12 +125,12 @@ class Pathname(UserString):
     """
     Class for pathnames
     """
-    def __new__(cls, arg):
+    def __new__(cls, arg: str):
         if arg is None:
             return None
         return super().__new__(cls)
 
-    def __init__(self, arg):
+    def __init__(self, arg: str):
         super().__init__(arg)
         self.raw = self.data
         # TODO: There are lots of funky characters that can mess with the terminal  # pylint: disable=fixme
@@ -156,11 +157,11 @@ class FSDict(AttrDict):
     """
     Class for capturing a directory structure into a dictionary
     """
-    _dir_fd = None
-    _path = None
+    _dir_fd: Optional[int] = None
+    _path: str = ""
     _handler = None
 
-    def __init__(self, path="", dir_fd=None, handler=None):
+    def __init__(self, path: str = "", dir_fd: Optional[int] = None, handler=None):
         if dir_fd is not None:
             self._dir_fd = dir_fd
         self._path = path
@@ -176,10 +177,10 @@ class FSDict(AttrDict):
         super().__setitem__(item, value)
         return value
 
-    def _opener(self, path, flags):
+    def _opener(self, path: str, flags: int) -> int:
         return os.open(path, flags, dir_fd=self._dir_fd)
 
-    def _lsdir(self, path):
+    def _lsdir(self, path: str) -> List[str]:
         """
         Returns os.listdir() on path
         """
@@ -194,7 +195,7 @@ class FSDict(AttrDict):
             os.close(dir_fd)
         return sorted_alnum(listing)
 
-    def __missing__(self, path):
+    def __missing__(self, path: str):
         """
         Get contents from file, symlink or directory
         """
