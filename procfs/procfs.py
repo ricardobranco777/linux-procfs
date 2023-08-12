@@ -10,6 +10,7 @@ import gzip
 import os
 import re
 from itertools import zip_longest
+from typing import List, Optional
 
 from .utils import AttrDict, FSDict, IPAddr, Time, Uid, Gid, Pathname, try_int
 
@@ -18,8 +19,7 @@ class _Mixin:
     """
     Mixin class to share methods between Proc() and ProcPid()
     """
-
-    _dir_fd = None
+    _dir_fd: Optional[int] = None
 
     def __del__(self):
         if self._dir_fd is not None:
@@ -34,7 +34,7 @@ class _Mixin:
             os.close(self._dir_fd)
         self._dir_fd = None
 
-    def _get_dirfd(self, path, dir_fd=None):
+    def _get_dirfd(self, path: str, dir_fd: Optional[int] = None):
         """
         Get directory file descriptor
         """
@@ -45,14 +45,14 @@ class ProcNet(FSDict):
     """
     Class to parse /proc/self/net
     """
-    def __init__(self, dir_fd, *args, **kwargs):
+    def __init__(self, dir_fd: Optional[int], *args, **kwargs):
         self._dir_fd = dir_fd
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
         return f"{type(self).__name__}()"
 
-    def _xarp(self, path):
+    def _xarp(self, path: str) -> List[AttrDict]:
         """
         Parse /proc/net/{arp,rarp}
         """
@@ -64,7 +64,7 @@ class ProcNet(FSDict):
             entry.update(IP_address=IPAddr(entry.IP_address))
         return entries
 
-    def _proto(self, path):
+    def _proto(self, path: str) -> List[AttrDict]:
         """
         Parse /proc/net/{icmp,icmp6,raw,raw6,tcp,tcp6,udp,udp6,udplite,udplite6}
         """
@@ -84,7 +84,7 @@ class ProcNet(FSDict):
                 uid=Uid(entry.uid))
         return entries
 
-    def _parser1(self, path):
+    def _parser1(self, path: str) -> AttrDict:
         """
         Parse /proc/net/{netstat,snmp}
         """
@@ -95,7 +95,7 @@ class ProcNet(FSDict):
             keys.split()[0][:-1]: AttrDict(zip(keys.split()[1:], map(int, vals.split()[1:])))
             for keys, vals in zip(headers, values)})
 
-    def _dev(self):
+    def _dev(self) -> AttrDict:
         """
         Parse /proc/net/dev
         """
@@ -108,7 +108,7 @@ class ProcNet(FSDict):
             for _ in lines
             for iface, *values in [_.split()]})
 
-    def _dev_mcast(self):
+    def _dev_mcast(self) -> List[AttrDict]:
         """
         Parse /proc/net/dev_mcast
         """
@@ -117,19 +117,19 @@ class ProcNet(FSDict):
             lines = file.read().splitlines()
         return [AttrDict(zip(fields, _.split())) for _ in lines]
 
-    def _netstat(self):
+    def _netstat(self) -> AttrDict:
         """
         Parse /proc/net/netstat
         """
         return self._parser1("net/netstat")
 
-    def _snmp(self):
+    def _snmp(self) -> AttrDict:
         """
         Parse /proc/net/snmp
         """
         return self._parser1("net/snmp")
 
-    def _snmp6(self):
+    def _snmp6(self) -> AttrDict:
         """
         Parse /proc/net/snmp6
         """
@@ -139,7 +139,7 @@ class ProcNet(FSDict):
             k: int(v) for _ in lines
             for k, v in [_.split()]})
 
-    def _ipv6_route(self):
+    def _ipv6_route(self) -> List[AttrDict]:
         """
         Parse /proc/net/ipv6_route
         """
@@ -158,7 +158,7 @@ class ProcNet(FSDict):
                 for k in ('dst_prefixlen', 'src_prefixlen', 'metric', 'refcnt', 'usecnt', 'flags')})
         return entries
 
-    def _route(self):
+    def _route(self) -> List[AttrDict]:
         """
         Parse /proc/net/route
         """
@@ -169,7 +169,7 @@ class ProcNet(FSDict):
             entry.update({k: IPAddr(entry[k]) for k in ('Destination', 'Gateway', 'Mask')})
         return entries
 
-    def _unix(self):
+    def _unix(self) -> List[AttrDict]:
         """
         Parse /proc/net/unix
         """
@@ -197,7 +197,7 @@ class ProcNet(FSDict):
 
 for proto in ('arp', 'rarp', 'icmp', 'icmp6', 'raw', 'raw6',
               'tcp', 'tcp6', 'udp', 'udp6', 'udplite', 'udplite6'):
-    def handler(self, *, protocol=proto):  # pylint: disable=cell-var-from-loop
+    def handler(self, *, protocol: str = proto):  # pylint: disable=cell-var-from-loop
         if protocol in {'arp', 'rarp'}:
             return self._xarp(os.path.join("net", protocol))  # pylint: disable=protected-access
         return self._proto(os.path.join("net", protocol))  # pylint: disable=protected-access
@@ -222,7 +222,7 @@ class Proc(FSDict, _Mixin):
         """
         return filter(str.isdigit, os.listdir(self._dir_fd))
 
-    def tasks(self):
+    def tasks(self) -> list:
         """
         Returns a list of all the tasks (threads) in the system
         """
@@ -236,7 +236,7 @@ class Proc(FSDict, _Mixin):
                     pass
         return tasks
 
-    def _config(self):
+    def _config(self) -> Optional[AttrDict]:
         """
         Parses /proc/config.gz and returns an AttrDict
         If /proc/config.gz doesn't exist, try /boot or /lib/modules/
@@ -264,7 +264,7 @@ class Proc(FSDict, _Mixin):
             return None
         return AttrDict(_.split('=') for _ in lines if _.startswith("CONFIG_"))
 
-    def _cgroups(self):
+    def _cgroups(self) -> AttrDict:
         """
         Parses /proc/cgroup and returns an AttrDict
         """
@@ -275,28 +275,28 @@ class Proc(FSDict, _Mixin):
             k: AttrDict(zip(keys, map(int, values))) for _ in lines
             for k, *values in [_.split()]})
 
-    def _cmdline(self):
+    def _cmdline(self) -> str:
         """
         Parses /proc/cmdline and returns a list
         """
         with open("cmdline", opener=self._opener, encoding="utf-8") as file:
             return file.read().strip()
 
-    def _cpuinfo(self):
+    def _cpuinfo(self) -> List[AttrDict]:
         """
         Parses /proc/cpuinfo and returns a list of AttrDict's
         """
         with open("cpuinfo", opener=self._opener, encoding="utf-8") as file:
             cpus = file.read()[:-1].split('\n\n')
         entries = [
-            AttrDict([map(str.strip, _.split(':')) for _ in cpu.splitlines()])
+            AttrDict([map(str.strip, _.split(':')) for _ in cpu.splitlines()])  # type: ignore
             for cpu in cpus
         ]
         for entry in entries:
             entry.flags = set(entry.flags.split())
         return entries
 
-    def _crypto(self):
+    def _crypto(self) -> AttrDict:
         """
         Parses /proc/crypto and returns an AttrDict
         """
@@ -309,7 +309,7 @@ class Proc(FSDict, _Mixin):
             for item in info
             for line1, *lines in [item.splitlines()]})
 
-    def _locks(self):
+    def _locks(self) -> List[AttrDict]:
         """
         Parses /proc/locks and returns a list of AttrDict's
         """
@@ -318,7 +318,7 @@ class Proc(FSDict, _Mixin):
             data = file.read()
         return [AttrDict(zip(fields, _.replace(':', ' ').split()[1:])) for _ in data.splitlines()]
 
-    def _meminfo(self):
+    def _meminfo(self) -> AttrDict:
         """
         Parses /proc/meminfo and returns an AttrDict
         """
@@ -326,7 +326,7 @@ class Proc(FSDict, _Mixin):
             lines = file.read().replace('kB\n', '\n').splitlines()
         return AttrDict({k: int(v.strip()) for k, v in [_.split(':') for _ in lines]})
 
-    def _mounts(self):
+    def _mounts(self) -> List[AttrDict]:
         """
         Parses /proc/mounts and returns a list of AttrDict's
         """
@@ -334,7 +334,7 @@ class Proc(FSDict, _Mixin):
         with ProcPid(dir_fd=self._dir_fd) as proc_self:
             return proc_self.mounts
 
-    def _swaps(self):
+    def _swaps(self) -> List[AttrDict]:
         """
         Parses /proc/swaps and returns a list of AttrDict's
         """
@@ -345,7 +345,7 @@ class Proc(FSDict, _Mixin):
             entry.update(Filename=Pathname(entry.Filename))
         return entries
 
-    def _vmstat(self):
+    def _vmstat(self) -> AttrDict:
         """
         Parses /proc/vmstat and returns an AttrDict
         """
@@ -353,7 +353,7 @@ class Proc(FSDict, _Mixin):
             lines = file.read().splitlines()
         return AttrDict({k: int(v) for k, v in [_.split() for _ in lines]})
 
-    def _sysvipc(self, path):
+    def _sysvipc(self, path: str) -> List[AttrDict]:
         """
         Parses /proc/sysvipc/{msg,sem,shm} and returns a list of AttrDict's
         """
@@ -366,7 +366,7 @@ class Proc(FSDict, _Mixin):
             entry.update({k: Gid(entry[k]) for k in ('gid', 'cgid')})
         return entries
 
-    def __missing__(self, path):
+    def __missing__(self, path: str):
         """
         Creates dynamic keys for elements in /proc/
         """
@@ -407,7 +407,7 @@ class ProcPid(FSDict, _Mixin):
     def __repr__(self):
         return f"{type(self).__name__}(pid={self.pid}, proc={self._proc}"
 
-    def _cmdline(self):
+    def _cmdline(self) -> List[str]:
         """
         Parses /proc/<pid>/cmdline and returns a list
         """
@@ -419,7 +419,7 @@ class ProcPid(FSDict, _Mixin):
             return data.rstrip('\0').split('\0')
         return [data]
 
-    def _comm(self):  # pylint: disable=method-hidden # https://github.com/PyCQA/pylint/issues/414
+    def _comm(self) -> str:  # pylint: disable=method-hidden # https://github.com/PyCQA/pylint/issues/414
         """
         Parses /proc/comm
         """
@@ -428,7 +428,7 @@ class ProcPid(FSDict, _Mixin):
         # Strip trailing newline
         return data[:-1]
 
-    def _environ(self):
+    def _environ(self) -> Optional[AttrDict]:
         """
         Parses /proc/<pid>/environ and returns an AttrDict
         """
@@ -439,7 +439,7 @@ class ProcPid(FSDict, _Mixin):
         except (UnicodeDecodeError, ValueError):
             return None
 
-    def _io(self):
+    def _io(self) -> AttrDict:
         """
         Parses /proc/<pid>/io and returns an AttrDict
         """
@@ -447,7 +447,7 @@ class ProcPid(FSDict, _Mixin):
             lines = file.read().splitlines()
         return AttrDict({k: int(v) for k, v in [_.split(': ') for _ in lines]})
 
-    def _limits(self):
+    def _limits(self) -> AttrDict:
         """
         Parses /proc/<pid>/limits and returns an AttrDict
         """
@@ -478,7 +478,7 @@ class ProcPid(FSDict, _Mixin):
             fields[k]: AttrDict(zip(('soft', 'hard'), map(int, v)))
             for (k, *v) in data})
 
-    def _maps(self):
+    def _maps(self) -> List[AttrDict]:
         """
         Parses /proc/<pid>/maps and returns a list of AttrDict's
         """
@@ -500,7 +500,7 @@ class ProcPid(FSDict, _Mixin):
             entry.update(pathname=Pathname(pathname))
         return entries
 
-    def _mounts(self):
+    def _mounts(self) -> List[AttrDict]:
         """
         Parses /proc/<pid>/mounts and returns a list of AttrDict's
         """
@@ -518,7 +518,7 @@ class ProcPid(FSDict, _Mixin):
                     for k, *v in [_.split('=', 1) for _ in entry.mntops.split(',')]}))
         return entries
 
-    def _mountinfo(self):
+    def _mountinfo(self) -> List[AttrDict]:
         """
         Parses /proc/<pid>/mountinfo and returns a list of AttrDict's
         """
@@ -541,7 +541,7 @@ class ProcPid(FSDict, _Mixin):
                     for k, *v in [_.split('=', 1) for _ in entry.super_options.split(',')]}))
         return entries
 
-    def _numa_maps(self):   # pylint: disable=star-needs-assignment-target  # Make Pylint happy on Python 3.4
+    def _numa_maps(self) -> AttrDict:
         """
         Parses /proc/<pid>/numa_maps and returns an AttrDict
         """
@@ -558,7 +558,7 @@ class ProcPid(FSDict, _Mixin):
                 entry[key].update(file=Pathname(entry[key].file))
         return entry
 
-    def _smaps(self):
+    def _smaps(self) -> List[AttrDict]:
         """
         Parses /proc/<pid>/smaps and returns a list of AttrDict's
         """
@@ -574,7 +574,7 @@ class ProcPid(FSDict, _Mixin):
         ]
         return [AttrDict(**a, **b) for a, b in zip(maps, self.maps)]
 
-    def _stat(self):
+    def _stat(self) -> AttrDict:
         """
         Parses /proc/<pid>/stat and returns an AttrDict
         """
@@ -597,7 +597,7 @@ class ProcPid(FSDict, _Mixin):
         info.comm = info.comm.replace("\n", "\\n")
         return info
 
-    def _statm(self):
+    def _statm(self) -> AttrDict:
         """
         Parses /proc/<pid>/statm and returns an AttrDict
         """
@@ -606,7 +606,7 @@ class ProcPid(FSDict, _Mixin):
             data = map(int, file.read().split())
         return AttrDict(zip(fields, data))
 
-    def _status(self):
+    def _status(self) -> AttrDict:
         """
         Parses /proc/<pid>/status and returns an AttrDict
         """
@@ -629,7 +629,7 @@ class ProcPid(FSDict, _Mixin):
             if k in status})
         return status
 
-    def __missing__(self, path):
+    def __missing__(self, path: str):
         """
         Creates dynamic keys for elements in /proc/<pid>
         """

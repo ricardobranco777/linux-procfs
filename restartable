@@ -58,7 +58,7 @@ opts = None
 services = set()
 
 
-def guess_command(proc):
+def guess_command(proc: ProcPid) -> str:
     """
     Guess the command being run
     """
@@ -90,7 +90,7 @@ def guess_command(proc):
     return cmdline.split()[0]
 
 
-def print_info(proc, deleted):
+def print_info(proc: ProcPid, deleted: list) -> None:
     """
     Print information
     """

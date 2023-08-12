@@ -1,2 +1,2 @@
 [MESSAGES CONTROL]
-disable=invalid-name,global-statement,too-many-ancestors,too-few-public-methods,too-many-public-methods,missing-function-docstring,missing-module-docstring,missing-class-docstring
+disable=invalid-name,too-many-ancestors,too-few-public-methods,too-many-public-methods,missing-function-docstring,missing-module-docstring,missing-class-docstring

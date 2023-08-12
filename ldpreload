@@ -5,11 +5,12 @@ Show processes running with LD_* variables set
 
 import os
 import sys
+from typing import List
 
 from procfs.procfs import Proc, ProcPid
 
 
-def print_info(proc, lines):
+def print_info(proc, lines: List[str]) -> None:
     "Print info"
     print("{:<8} {:<16} {}".format(
         proc.pid, os.path.basename(proc.cmdline[0]), "\n".join(lines)))
