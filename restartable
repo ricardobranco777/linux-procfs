@@ -33,10 +33,10 @@ Options:
 
 # Ignore deleted files in these directories
 IGNORE = (
-    '/dev',
-    '/memfd:',
-    '/run',
-    '/ ',
+    "/dev",
+    "/memfd:",
+    "/run",
+    "/ ",
 )
 
 # Regular expression to find systemd service unit in /proc/<pid>/cgroup
@@ -48,7 +48,9 @@ with ProcPid(1) as pid1:
         SYSTEMD_REGEX = r"\d+:name=openrc:/(.*)$"
 
 # Regular expression to match scripting languages
-SCRIPT_REGEX = r"((perl|python|(ruby\.)?ruby)(\d?(\.\d)?)|(a|ba|c|da|fi|k|pdk|tc|z)?sh)$"
+SCRIPT_REGEX = (
+    r"((perl|python|(ruby\.)?ruby)(\d?(\.\d)?)|(a|ba|c|da|fi|k|pdk|tc|z)?sh)$"
+)
 
 FORMAT_STRING = "%s\t%s\t%s\t%-20s\t%20s\t%s"
 
@@ -64,11 +66,11 @@ def guess_command(proc: ProcPid) -> str:
     """
     if opts.verbose:
         # cmdline is empty if zombie, but zombies have void proc.maps
-        if not proc.cmdline[0].startswith('/') and proc.exe:
+        if not proc.cmdline[0].startswith("/") and proc.exe:
             # Use full path
             exe = proc.exe
             if exe.endswith(DELETED):
-                exe = exe[:-len(DELETED)]  # Strip " (deleted)"
+                exe = exe[: -len(DELETED)]  # Strip " (deleted)"
             if os.path.basename(proc.cmdline[0]) == os.path.basename(exe):
                 return " ".join([exe] + proc.cmdline[1:])
         return " ".join(proc.cmdline)
@@ -85,7 +87,7 @@ def guess_command(proc: ProcPid) -> str:
             if os.path.isfile(arg):
                 cmdline = arg
                 break
-    if cmdline.startswith('/'):
+    if cmdline.startswith("/"):
         return os.path.basename(cmdline)
     return cmdline.split()[0]
 
@@ -106,8 +108,10 @@ def print_info(proc: ProcPid, deleted: list) -> None:
         uid = proc.status.Uid.real
         username = uid.name
         cmdline = guess_command(proc)
-        print(FORMAT_STRING % (
-            proc.pid, proc.status.PPid, uid, username, service, cmdline))
+        print(
+            FORMAT_STRING
+            % (proc.pid, proc.status.PPid, uid, username, service, cmdline)
+        )
     if not opts.short:
         for path in sorted(deleted):
             print(f"\t{path}")
@@ -132,19 +136,20 @@ def main():
         sys.exit(1)
 
     if opts.short < 3:
-        print(FORMAT_STRING % (
-            "PID", "PPID", "UID", "User", "Service", "Command"))
+        print(FORMAT_STRING % ("PID", "PPID", "UID", "User", "Service", "Command"))
     for pid in Proc().pids():
         try:
             with ProcPid(pid, proc=opts.proc) as proc:
                 # Get deleted executable mappings
                 deleted = {
-                    _['pathname'][:-len(DELETED)]
+                    _["pathname"][: -len(DELETED)]
                     for _ in list(proc.maps)
-                    if (_['pathname']
-                        and 'x' in _['perms']
-                        and _['pathname'].endswith(DELETED)
-                        and not _['pathname'].startswith(IGNORE))
+                    if (
+                        _["pathname"]
+                        and "x" in _["perms"]
+                        and _["pathname"].endswith(DELETED)
+                        and not _["pathname"].startswith(IGNORE)
+                    )
                 }
                 if deleted:
                     print_info(proc, deleted)
@@ -156,11 +161,11 @@ def main():
 
 if __name__ == "__main__":
     argparser = ArgumentParser(usage=USAGE, add_help=False)
-    argparser.add_argument('-h', '--help', action='store_true')
-    argparser.add_argument('-P', '--proc', default='/proc')
-    argparser.add_argument('-s', '--short', action='count', default=0)
-    argparser.add_argument('-v', '--verbose', action='store_true')
-    argparser.add_argument('-V', '--version', action='store_true')
+    argparser.add_argument("-h", "--help", action="store_true")
+    argparser.add_argument("-P", "--proc", default="/proc")
+    argparser.add_argument("-s", "--short", action="count", default=0)
+    argparser.add_argument("-v", "--verbose", action="store_true")
+    argparser.add_argument("-V", "--version", action="store_true")
     opts = argparser.parse_args()
     try:
         main()

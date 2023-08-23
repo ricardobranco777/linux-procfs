@@ -5,7 +5,7 @@ all: black flake8 pylint test pytest mypy
 
 .PHONY: black
 flake8:
-	@black --check .
+	@black --check $(FILES)
 
 .PHONY: pylint
 pylint:
