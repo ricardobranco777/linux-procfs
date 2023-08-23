@@ -1,11 +1,11 @@
 FILES = restartable ldpreload */*.py
 
 .PHONY: all
-all: flake8 pylint test pytest mypy
+all: black flake8 pylint test pytest mypy
 
-.PHONY: flake8
+.PHONY: black
 flake8:
-	@flake8 --ignore=E501,W503 $(FILES)
+	@black --check .
 
 .PHONY: pylint
 pylint:

@@ -23,7 +23,7 @@ def try_int(string: str) -> Union[int, str]:
     Return an integer if possible, else string
     """
     # Ignore octal & hexadecimal
-    if len(string) > 1 and string[0] == '0' and string.isdigit():
+    if len(string) > 1 and string[0] == "0" and string.isdigit():
         return string
     try:
         return int(string)
@@ -39,7 +39,7 @@ def sorted_alnum(list_: list) -> List[str]:
     # Sort alphabetically
     list_.sort()
     # Sort numerically
-    list_.sort(key=lambda x: int(x) if x.isdigit() else float('inf'))
+    list_.sort(key=lambda x: int(x) if x.isdigit() else float("inf"))
     return list_
 
 
@@ -47,6 +47,7 @@ class Uid(int):
     """
     Class to hold user ID's
     """
+
     def __init__(self, uid: str):
         super().__init__()
         self.uid = int(uid)
@@ -66,6 +67,7 @@ class Gid(int):
     """
     Class to hold user ID's
     """
+
     def __init__(self, gid: str):
         super().__init__()
         self.gid = int(gid)
@@ -85,6 +87,7 @@ class Time(str):
     """
     Class for time objects
     """
+
     def __new__(cls, arg: str):
         dtime = datetime.fromtimestamp(float(arg))
         obj = str.__new__(cls, dtime.ctime())
@@ -96,6 +99,7 @@ class IPAddr(str):
     """
     Class for IPv4/6 address objects
     """
+
     def __new__(cls, arg: str, big_endian: bool = True):
         try:
             address = ip_address(arg)
@@ -110,7 +114,8 @@ class IPAddr(str):
                         htonl(int(arg[:8], base=16)) << 24
                         | htonl(int(arg[8:16], base=16)) << 16
                         | htonl(int(arg[16:24], base=16)) << 8
-                        | htonl(int(arg[24:], base=16)))
+                        | htonl(int(arg[24:], base=16))
+                    )
             else:
                 if len(arg) == 8:
                     address = IPv4Address(int(arg, base=16))
@@ -125,6 +130,7 @@ class Pathname(UserString):
     """
     Class for pathnames
     """
+
     def __new__(cls, arg: str):
         if arg is None:
             return None
@@ -141,9 +147,10 @@ class AttrDict(UserDict):
     """
     Class for accessing dictionary keys with attributes
     """
+
     def __getattr__(self, attr):
-        if attr.startswith('__') and attr.endswith('__'):
-            raise AttributeError    # Make help() work
+        if attr.startswith("__") and attr.endswith("__"):
+            raise AttributeError  # Make help() work
         try:
             return self.__getitem__(attr)
         except KeyError as e:
@@ -157,6 +164,7 @@ class FSDict(AttrDict):
     """
     Class for capturing a directory structure into a dictionary
     """
+
     _dir_fd: Optional[int] = None
     _path: str = ""
     _handler = None
@@ -218,6 +226,7 @@ class CustomJSONEncoder(json.JSONEncoder):
     JSON Encoder for the objects defined here
     Use like this: json.dumps(obj, cls=CustomJSONEncoder)
     """
+
     def default(self, o):
         if isinstance(o, (IPAddr, Uid, Gid, Time, AttrDict, Pathname)):
             return o.data
