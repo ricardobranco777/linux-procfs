@@ -178,7 +178,7 @@ class FSDict(AttrDict):
 
     def __repr__(self):
         path = self._path if self._path else '""'
-        return f"{type(self).__name__}(path={path}, dir_fd={self._dir_fd}, handler={self._handler})"
+        return f'{type(self).__name__}(path="{path}", dir_fd={self._dir_fd}, handler={self._handler})'
 
     def __getitem__(self, item):
         value = super().__getitem__(item)

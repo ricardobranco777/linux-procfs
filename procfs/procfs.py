@@ -302,7 +302,7 @@ class Proc(FSDict, _Mixin):
         super().__init__()
 
     def __repr__(self):
-        return f"{type(self).__name__}(proc={self._proc})"
+        return f'{type(self).__name__}(proc="{self._proc}")'
 
     def pids(self):
         """
@@ -526,7 +526,7 @@ class ProcPid(FSDict, _Mixin):
         super().__init__()
 
     def __repr__(self):
-        return f"{type(self).__name__}(pid={self.pid}, proc={self._proc}"
+        return f'{type(self).__name__}(pid={self.pid}, proc="{self._proc}")'
 
     def _cmdline(self) -> List[str]:
         """
