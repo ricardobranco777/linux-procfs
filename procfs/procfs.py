@@ -1,7 +1,3 @@
-#
-# Copyright 2019 Ricardo Branco <rbranco@suse.de>
-# MIT License
-#
 """
 Module with classes to parse /proc entries
 """
@@ -10,7 +6,7 @@ import gzip
 import os
 import re
 from itertools import zip_longest
-from typing import List, Optional
+from typing import Any, Iterable
 
 from .utils import AttrDict, FSDict, IPAddr, Time, Uid, Gid, Pathname, try_int
 
@@ -20,7 +16,7 @@ class _Mixin:
     Mixin class to share methods between Proc() and ProcPid()
     """
 
-    _dir_fd: Optional[int] = None
+    _dir_fd: int | None = None
 
     def __del__(self):
         if self._dir_fd is not None:
@@ -35,7 +31,7 @@ class _Mixin:
             os.close(self._dir_fd)
         self._dir_fd = None
 
-    def _get_dirfd(self, path: str, dir_fd: Optional[int] = None):
+    def _get_dirfd(self, path: str, dir_fd: int | None = None):
         """
         Get directory file descriptor
         """
@@ -47,14 +43,14 @@ class ProcNet(FSDict):
     Class to parse /proc/self/net
     """
 
-    def __init__(self, dir_fd: Optional[int], *args, **kwargs):
+    def __init__(self, dir_fd: int | None, *args, **kwargs) -> None:
         self._dir_fd = dir_fd
         super().__init__(*args, **kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{type(self).__name__}()"
 
-    def _xarp(self, path: str) -> List[AttrDict]:
+    def _xarp(self, path: str) -> list[AttrDict]:
         """
         Parse /proc/net/{arp,rarp}
         """
@@ -66,7 +62,7 @@ class ProcNet(FSDict):
             entry.update(IP_address=IPAddr(entry.IP_address))
         return entries
 
-    def _proto(self, path: str) -> List[AttrDict]:
+    def _proto(self, path: str) -> list[AttrDict]:
         """
         Parse /proc/net/{icmp,icmp6,raw,raw6,tcp,tcp6,udp,udp6,udplite,udplite6}
         """
@@ -135,7 +131,7 @@ class ProcNet(FSDict):
             }
         )
 
-    def _dev_mcast(self) -> List[AttrDict]:
+    def _dev_mcast(self) -> list[AttrDict]:
         """
         Parse /proc/net/dev_mcast
         """
@@ -164,7 +160,7 @@ class ProcNet(FSDict):
             lines = file.read().splitlines()
         return AttrDict({k: int(v) for _ in lines for k, v in [_.split()]})
 
-    def _ipv6_route(self) -> List[AttrDict]:
+    def _ipv6_route(self) -> list[AttrDict]:
         """
         Parse /proc/net/ipv6_route
         """
@@ -205,7 +201,7 @@ class ProcNet(FSDict):
             )
         return entries
 
-    def _route(self) -> List[AttrDict]:
+    def _route(self) -> list[AttrDict]:
         """
         Parse /proc/net/route
         """
@@ -218,7 +214,7 @@ class ProcNet(FSDict):
             )
         return entries
 
-    def _unix(self) -> List[AttrDict]:
+    def _unix(self) -> list[AttrDict]:
         """
         Parse /proc/net/unix
         """
@@ -233,7 +229,7 @@ class ProcNet(FSDict):
             entry.update(Path=Pathname(entry.Path))
         return entries
 
-    def __missing__(self, path):
+    def __missing__(self, path: str) -> Any:
         """
         Create dynamic keys for elements in /proc/net
         """
@@ -279,7 +275,9 @@ for proto in (
     "udplite6",
 ):
 
-    def handler(self, *, protocol: str = proto):  # pylint: disable=cell-var-from-loop
+    def handler(
+        self, *, protocol: str = proto
+    ) -> None:  # pylint: disable=cell-var-from-loop
         if protocol in {"arp", "rarp"}:
             return self._xarp(  # pylint: disable=protected-access
                 os.path.join("net", protocol)
@@ -296,15 +294,15 @@ class Proc(FSDict, _Mixin):
     Class to parse /proc entries
     """
 
-    def __init__(self, proc="/proc"):
+    def __init__(self, proc: str = "/proc") -> None:
         self._proc = proc
         self._get_dirfd(proc)
         super().__init__()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{type(self).__name__}(proc="{self._proc}")'
 
-    def pids(self):
+    def pids(self) -> Iterable[str]:
         """
         Returns a list of all the processes in the system
         """
@@ -324,7 +322,7 @@ class Proc(FSDict, _Mixin):
                     pass
         return tasks
 
-    def _config(self) -> Optional[AttrDict]:
+    def _config(self) -> AttrDict | None:
         """
         Parses /proc/config.gz and returns an AttrDict
         If /proc/config.gz doesn't exist, try /boot or /lib/modules/
@@ -374,7 +372,7 @@ class Proc(FSDict, _Mixin):
         with open("cmdline", opener=self._opener, encoding="utf-8") as file:
             return file.read().strip()
 
-    def _cpuinfo(self) -> List[AttrDict]:
+    def _cpuinfo(self) -> list[AttrDict]:
         """
         Parses /proc/cpuinfo and returns a list of AttrDict's
         """
@@ -404,7 +402,7 @@ class Proc(FSDict, _Mixin):
             }
         )
 
-    def _locks(self) -> List[AttrDict]:
+    def _locks(self) -> list[AttrDict]:
         """
         Parses /proc/locks and returns a list of AttrDict's
         """
@@ -434,7 +432,7 @@ class Proc(FSDict, _Mixin):
             lines = file.read().replace("kB\n", "\n").splitlines()
         return AttrDict({k: int(v.strip()) for k, v in [_.split(":") for _ in lines]})
 
-    def _mounts(self) -> List[AttrDict]:
+    def _mounts(self) -> list[AttrDict]:
         """
         Parses /proc/mounts and returns a list of AttrDict's
         """
@@ -442,7 +440,7 @@ class Proc(FSDict, _Mixin):
         with ProcPid(dir_fd=self._dir_fd) as proc_self:
             return proc_self.mounts
 
-    def _swaps(self) -> List[AttrDict]:
+    def _swaps(self) -> list[AttrDict]:
         """
         Parses /proc/swaps and returns a list of AttrDict's
         """
@@ -461,7 +459,7 @@ class Proc(FSDict, _Mixin):
             lines = file.read().splitlines()
         return AttrDict({k: int(v) for k, v in [_.split() for _ in lines]})
 
-    def _sysvipc(self, path: str) -> List[AttrDict]:
+    def _sysvipc(self, path: str) -> list[AttrDict]:
         """
         Parses /proc/sysvipc/{msg,sem,shm} and returns a list of AttrDict's
         """
@@ -476,7 +474,7 @@ class Proc(FSDict, _Mixin):
             entry.update({k: Gid(entry[k]) for k in ("gid", "cgid")})
         return entries
 
-    def __missing__(self, path: str):
+    def __missing__(self, path: str) -> Any:
         """
         Creates dynamic keys for elements in /proc/
         """
@@ -510,12 +508,18 @@ class ProcPid(FSDict, _Mixin):
     Class for managing /proc/<pid>/*
     """
 
-    def __init__(self, pid=None, proc="/proc", dir_fd=None):
+    def __init__(
+        self,
+        pid: int | str | None = None,
+        proc: str = "/proc",
+        dir_fd: int | None = None,
+    ) -> None:
         if pid is None:
             pid = os.getpid()
         elif int(pid) <= 0:
             raise ValueError(f"Invalid pid {pid}")
         self.pid = str(pid)
+        self._proc: str | None
         if dir_fd is None:
             self._get_dirfd(os.path.join(proc, self.pid))
             self._proc = proc
@@ -525,10 +529,10 @@ class ProcPid(FSDict, _Mixin):
         setattr(self, "ctime", Time(os.stat(".", dir_fd=self._dir_fd).st_ctime))
         super().__init__()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{type(self).__name__}(pid={self.pid}, proc="{self._proc}")'
 
-    def _cmdline(self) -> List[str]:
+    def _cmdline(self) -> list[str]:
         """
         Parses /proc/<pid>/cmdline and returns a list
         """
@@ -540,11 +544,7 @@ class ProcPid(FSDict, _Mixin):
             return data.rstrip("\0").split("\0")
         return [data]
 
-    def _comm(
-        self,
-    ) -> (
-        str
-    ):  # pylint: disable=method-hidden # https://github.com/PyCQA/pylint/issues/414
+    def _comm(self) -> str:
         """
         Parses /proc/comm
         """
@@ -553,7 +553,7 @@ class ProcPid(FSDict, _Mixin):
         # Strip trailing newline
         return data[:-1]
 
-    def _environ(self) -> Optional[AttrDict]:
+    def _environ(self) -> AttrDict | None:
         """
         Parses /proc/<pid>/environ and returns an AttrDict
         """
@@ -609,7 +609,7 @@ class ProcPid(FSDict, _Mixin):
             }
         )
 
-    def _maps(self) -> List[AttrDict]:
+    def _maps(self) -> list[AttrDict]:
         """
         Parses /proc/<pid>/maps and returns a list of AttrDict's
         """
@@ -632,7 +632,7 @@ class ProcPid(FSDict, _Mixin):
             entry.update(pathname=Pathname(pathname))
         return entries
 
-    def _mounts(self) -> List[AttrDict]:
+    def _mounts(self) -> list[AttrDict]:
         """
         Parses /proc/<pid>/mounts and returns a list of AttrDict's
         """
@@ -657,7 +657,7 @@ class ProcPid(FSDict, _Mixin):
             )
         return entries
 
-    def _mountinfo(self) -> List[AttrDict]:
+    def _mountinfo(self) -> list[AttrDict]:
         """
         Parses /proc/<pid>/mountinfo and returns a list of AttrDict's
         """
@@ -726,7 +726,7 @@ class ProcPid(FSDict, _Mixin):
                 entry[key].update(file=Pathname(entry[key].file))
         return entry
 
-    def _smaps(self) -> List[AttrDict]:
+    def _smaps(self) -> list[AttrDict]:
         """
         Parses /proc/<pid>/smaps and returns a list of AttrDict's
         """
@@ -818,7 +818,7 @@ class ProcPid(FSDict, _Mixin):
         )
         return status
 
-    def __missing__(self, path: str):
+    def __missing__(self, path: str) -> Any:
         """
         Creates dynamic keys for elements in /proc/<pid>
         """

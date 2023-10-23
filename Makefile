@@ -1,7 +1,7 @@
 FILES = restartable ldpreload */*.py
 
 .PHONY: all
-all: black flake8 pylint test pytest mypy
+all: flake8 pylint test pytest mypy black
 
 .PHONY: black
 flake8:

@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 #
-# Copyright 2019 Ricardo Branco <rbranco@suse.de>
-# MIT License
-#
 """
 list restartable programs or services using deleted libraries
 """

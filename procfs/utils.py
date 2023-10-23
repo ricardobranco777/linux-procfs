@@ -1,7 +1,3 @@
-#
-# Copyright 2019,2020 Ricardo Branco <rbranco@suse.de>
-# MIT License
-#
 """
 Module for AttrDict
 """
@@ -15,10 +11,10 @@ from socket import htonl
 from pwd import getpwuid
 from grp import getgrgid
 from sys import byteorder
-from typing import List, Optional, Union
+from typing import Any
 
 
-def try_int(string: str) -> Union[int, str]:
+def try_int(string: str) -> int | str:
     """
     Return an integer if possible, else string
     """
@@ -31,7 +27,7 @@ def try_int(string: str) -> Union[int, str]:
         return string
 
 
-def sorted_alnum(list_: list) -> List[str]:
+def sorted_alnum(list_: list) -> list[str]:
     """
     Returns a list sorted in-place alphanumerically.
     Useful for directories, like /proc, that contain pids and other files
@@ -48,7 +44,7 @@ class Uid(int):
     Class to hold user ID's
     """
 
-    def __init__(self, uid: str):
+    def __init__(self, uid: str) -> None:
         super().__init__()
         self.uid = int(uid)
         self._name = ""
@@ -68,7 +64,7 @@ class Gid(int):
     Class to hold user ID's
     """
 
-    def __init__(self, gid: str):
+    def __init__(self, gid: str) -> None:
         super().__init__()
         self.gid = int(gid)
         self._name = ""
@@ -88,7 +84,7 @@ class Time(str):
     Class for time objects
     """
 
-    def __new__(cls, arg: str):
+    def __new__(cls, arg: str | float):
         dtime = datetime.fromtimestamp(float(arg))
         obj = str.__new__(cls, dtime.ctime())
         setattr(obj, "datetime", dtime)
@@ -136,7 +132,7 @@ class Pathname(UserString):
             return None
         return super().__new__(cls)
 
-    def __init__(self, arg: str):
+    def __init__(self, arg: str) -> None:
         super().__init__(arg)
         self.raw = self.data
         # TODO: There are lots of funky characters that can mess with the terminal  # pylint: disable=fixme
@@ -148,7 +144,7 @@ class AttrDict(UserDict):
     Class for accessing dictionary keys with attributes
     """
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> Any:
         if attr.startswith("__") and attr.endswith("__"):
             raise AttributeError  # Make help() work
         try:
@@ -156,7 +152,7 @@ class AttrDict(UserDict):
         except KeyError as e:
             raise AttributeError(e) from e
 
-    def __delattr__(self, attr):
+    def __delattr__(self, attr: str) -> None:
         self.__delitem__(attr)
 
 
@@ -165,22 +161,22 @@ class FSDict(AttrDict):
     Class for capturing a directory structure into a dictionary
     """
 
-    _dir_fd: Optional[int] = None
+    _dir_fd: int | None = None
     _path: str = ""
     _handler = None
 
-    def __init__(self, path: str = "", dir_fd: Optional[int] = None, handler=None):
+    def __init__(self, path: str = "", dir_fd: int | None = None, handler=None) -> None:
         if dir_fd is not None:
             self._dir_fd = dir_fd
         self._path = path
         self._handler = handler
         super().__init__()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         path = self._path if self._path else '""'
         return f'{type(self).__name__}(path="{path}", dir_fd={self._dir_fd}, handler={self._handler})'
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         value = super().__getitem__(item)
         super().__setitem__(item, value)
         return value
@@ -188,7 +184,7 @@ class FSDict(AttrDict):
     def _opener(self, path: str, flags: int) -> int:
         return os.open(path, flags, dir_fd=self._dir_fd)
 
-    def _lsdir(self, path: str) -> List[str]:
+    def _lsdir(self, path: str) -> list[str]:
         """
         Returns os.listdir() on path
         """
@@ -203,7 +199,7 @@ class FSDict(AttrDict):
             os.close(dir_fd)
         return sorted_alnum(listing)
 
-    def __missing__(self, path: str):
+    def __missing__(self, path: str) -> Any:
         """
         Get contents from file, symlink or directory
         """

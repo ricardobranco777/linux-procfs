@@ -18,4 +18,4 @@ Add `https://github.com/ricardobranco777/linux-procfs/archive/master.zip` to `re
 
 ## NOTES
 
-  - Tested on Python 3.8+
+  - Tested on Python 3.10+
