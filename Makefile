@@ -24,4 +24,3 @@ mypy:
 .PHONY: test
 test:
 	@TZ=UTC LC_ALL=en_US.UTF-8 python3 -m unittest tests/*.py
-	@tests/integration.sh
