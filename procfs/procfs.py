@@ -365,12 +365,12 @@ class Proc(FSDict, _Mixin):
             }
         )
 
-    def _cmdline(self) -> str:
+    def _cmdline(self) -> list[str]:
         """
-        Parses /proc/cmdline and returns a list
+        Parses /proc/cmdline and returns a list of strings
         """
         with open("cmdline", opener=self._opener, encoding="utf-8") as file:
-            return file.read().strip()
+            return file.read().strip().split()
 
     def _cpuinfo(self) -> list[AttrDict]:
         """
@@ -383,6 +383,8 @@ class Proc(FSDict, _Mixin):
             for cpu in cpus
         ]
         for entry in entries:
+            if "flags" not in entry:
+                break
             entry.flags = set(entry.flags.split())
         return entries
 
